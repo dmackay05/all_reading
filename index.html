@@ -1,0 +1,3103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lectio Divina — Study &amp; Reading Tracker</title>
+<style>
+  /* System font aliases — no external requests, works fully offline */
+  @font-face {
+    font-family: 'Cormorant Garamond';
+    src: local('Georgia'), local('Times New Roman');
+    font-weight: 100 900;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'Cormorant Garamond';
+    src: local('Georgia'), local('Times New Roman');
+    font-weight: 100 900;
+    font-style: italic;
+  }
+  @font-face {
+    font-family: 'Cinzel';
+    src: local('Georgia'), local('Times New Roman');
+    font-weight: 100 900;
+  }
+  @font-face {
+    font-family: 'Source Sans 3';
+    src: local('system-ui'), local('-apple-system'), local('Segoe UI'), local('Helvetica Neue'), local('Arial');
+    font-weight: 100 900;
+  }
+</style>
+<style>
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --gold-dim: #8a6c2e;
+    --cream: #f5f0e8;
+    --parchment: #ede4d0;
+    --parchment-dark: #d4c8a8;
+    --ink: #1a1610;
+    --ink-mid: #3a3020;
+    --ink-soft: #6b5e3f;
+    --olive: #4a5240;
+    --olive-light: #7a8a6a;
+    --burgundy: #6b2020;
+    --burgundy-light: #9e3030;
+    --lapis: #1e3a5f;
+    --lapis-light: #2e5a9e;
+    --shadow: rgba(26,22,16,0.25);
+    --glow: rgba(201,168,76,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: var(--ink);
+    color: var(--cream);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(201,168,76,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 80% 90%, rgba(30,58,95,0.12) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.005) 2px, rgba(255,255,255,0.005) 4px),
+      repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(255,255,255,0.003) 3px, rgba(255,255,255,0.003) 5px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 24px 60px; }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    padding: 52px 0 36px;
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+    margin-bottom: 28px;
+    position: relative;
+  }
+  header::after {
+    content: '✦';
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    padding: 0 16px;
+    color: var(--gold);
+    font-size: 14px;
+  }
+  .header-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.35em;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(36px, 5vw, 58px);
+    font-weight: 300;
+    color: var(--cream);
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+  h1 em { font-style: italic; color: var(--gold); }
+  .header-sub {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 10px;
+    letter-spacing: 0.08em;
+  }
+  .header-controls {
+    position: absolute;
+    top: 16px; right: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .gear-btn {
+    background: none;
+    border: 1px solid rgba(201,168,76,0.18);
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--ink-soft);
+    font-size: 15px;
+    transition: all 0.18s;
+    line-height: 1;
+  }
+  .gear-btn:hover {
+    border-color: rgba(201,168,76,0.45);
+    color: var(--gold-light);
+    background: rgba(201,168,76,0.07);
+    transform: rotate(30deg);
+  }
+
+  /* ── Section Switcher (Study ↔ Reading) ── */
+  .section-switch {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 32px;
+  }
+  .section-switch-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(201,168,76,0.18);
+    padding: 13px 34px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .section-switch-btn:first-child { border-radius: 4px 0 0 4px; border-right: none; }
+  .section-switch-btn:last-child  { border-radius: 0 4px 4px 0; }
+  .section-switch-btn:hover { color: var(--gold-light); }
+  .section-switch-btn.active {
+    color: var(--ink);
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+    border-color: var(--gold-dim);
+  }
+
+  .app-section { display: none; animation: fadeIn 0.3s ease; }
+  .app-section.active { display: block; }
+
+  /* ── Stats Bar (shared) ── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 4px;
+    padding: 18px 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: rgba(201,168,76,0.35); }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.4;
+  }
+  .stat-num {
+    font-family: 'Cinzel', serif;
+    font-size: 28px;
+    color: var(--gold);
+    font-weight: 500;
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* ── Tab Navigation (study sub-tabs) ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 36px;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: none;
+    border: none;
+    padding: 14px 22px 13px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--gold-light); }
+  .tab-btn.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+  }
+
+  /* ── Panels ── */
+  .panel { display: none; animation: fadeIn 0.3s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ── Section Label ── */
+  .section-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(201,168,76,0.25), transparent);
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .section-header .section-label { margin-bottom: 0; flex: 1; }
+
+  /* ── Corpus / Book Grid (Study) ── */
+  .corpus-section { margin-bottom: 44px; }
+
+  .corpus-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--gold-light);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .corpus-title .corpus-badge {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+
+  .corpus-progress-bar {
+    height: 3px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .corpus-progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+    transition: width 0.5s ease;
+  }
+
+  /* ── Book List (study accordion) ── */
+  .books-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  #section-reading .books-list { gap: 8px; }
+
+  .book-row {
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: border-color 0.18s;
+  }
+  .book-row.open { border-color: rgba(201,168,76,0.35); }
+  .book-row.complete { border-color: rgba(201,168,76,0.4); }
+  .book-row.partial { border-color: rgba(122,138,106,0.3); }
+
+  .book-row-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    background: rgba(255,255,255,0.025);
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .book-row.open .book-row-header,
+  .book-row-header:active {
+    background: rgba(201,168,76,0.07);
+  }
+
+  .book-row-name {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cream);
+    flex: 1;
+    min-width: 0;
+  }
+  .book-row-meta {
+    font-size: 10px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .book-row-bar-wrap {
+    width: 60px;
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .book-row-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--olive-light), var(--gold));
+    border-radius: 2px;
+    transition: width 0.35s ease;
+  }
+  .book-row-chevron {
+    font-size: 10px;
+    color: var(--ink-soft);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    margin-left: 2px;
+  }
+  .book-row.open .book-row-chevron { transform: rotate(180deg); }
+  .book-row-complete-tick {
+    font-size: 11px;
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+
+  .book-chapters-panel {
+    display: none;
+    padding: 10px 14px 14px;
+    background: rgba(0,0,0,0.2);
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .book-row.open .book-chapters-panel { display: block; }
+
+  .chapter-panel-toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .ch-toolbar-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 3px;
+    border: 1px solid rgba(201,168,76,0.2);
+    background: none;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .ch-toolbar-btn:hover, .ch-toolbar-btn:active {
+    border-color: rgba(201,168,76,0.5);
+    color: var(--gold-light);
+    background: rgba(201,168,76,0.07);
+  }
+  .ch-panel-count {
+    font-size: 10px;
+    color: var(--ink-soft);
+    margin-left: auto;
+  }
+
+  .chapter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .ch-chip {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: rgba(245,240,232,0.45);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.12s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .ch-chip:active { transform: scale(0.88); }
+  .ch-chip.read {
+    background: rgba(201,168,76,0.22);
+    border-color: rgba(201,168,76,0.55);
+    color: var(--gold-light);
+    font-weight: 500;
+  }
+
+  /* ── Modals (shared) ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,8,5,0.85);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal {
+    background: #231e14;
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 6px;
+    padding: 36px;
+    width: 100%;
+    max-width: 520px;
+    position: relative;
+    transform: translateY(20px);
+    transition: transform 0.25s;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.08);
+  }
+  .modal-overlay.open .modal { transform: none; }
+
+  .modal-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--gold-light);
+    margin-bottom: 4px;
+  }
+  .modal-subtitle {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+    letter-spacing: 0.05em;
+  }
+
+  .form-row { margin-bottom: 18px; }
+  label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin-bottom: 7px;
+  }
+  input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,168,76,0.18);
+    border-radius: 3px;
+    color: var(--cream);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 14px;
+    padding: 10px 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: rgba(201,168,76,0.5); }
+  select option { background: #1a1610; }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+  .form-row-double { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .btn {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 12px 28px;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+    color: var(--ink);
+  }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.25);
+    color: var(--ink-soft);
+  }
+  .btn-ghost:hover { border-color: rgba(201,168,76,0.5); color: var(--cream); }
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 28px;
+  }
+  .modal-close {
+    position: absolute;
+    top: 16px; right: 18px;
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .modal-close:hover { color: var(--cream); }
+
+  /* ── Journal / Log Panel ── */
+  .log-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .log-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--cream);
+  }
+
+  .log-entry {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-left: 3px solid var(--gold-dim);
+    border-radius: 0 4px 4px 0;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    transition: all 0.18s;
+  }
+  .log-entry:hover { border-left-color: var(--gold); background: rgba(201,168,76,0.04); }
+  .log-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .log-entry-ref {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    color: var(--gold-light);
+    font-weight: 400;
+  }
+  .log-entry-date {
+    font-size: 10px;
+    color: var(--ink-soft);
+    letter-spacing: 0.06em;
+  }
+  .log-entry-corpus {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px;
+    border-radius: 2px;
+    margin-bottom: 8px;
+  }
+  .log-entry-note {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(245,240,232,0.65);
+    line-height: 1.6;
+  }
+  .log-entry-delete {
+    background: none;
+    border: none;
+    color: rgba(107,94,63,0.4);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    transition: color 0.15s;
+    margin-left: 8px;
+  }
+  .log-entry-delete:hover { color: var(--burgundy-light); }
+
+  .empty-state {
+    text-align: center;
+    padding: 64px 0;
+    color: var(--ink-soft);
+  }
+  .empty-state-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+    opacity: 0.4;
+  }
+  .empty-state-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  /* ── General Conference Panel ── */
+  .gc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .gc-item {
+    background: rgba(30,58,95,0.15);
+    border: 1px solid rgba(46,90,158,0.2);
+    border-radius: 4px;
+    padding: 16px 38px 16px 16px;
+    cursor: pointer;
+    transition: all 0.18s;
+    position: relative;
+  }
+  .gc-item:hover {
+    background: rgba(30,58,95,0.28);
+    border-color: rgba(46,90,158,0.45);
+  }
+  .gc-item.read {
+    border-color: rgba(201,168,76,0.35);
+    background: rgba(201,168,76,0.07);
+  }
+  .gc-season { font-size: 11px; color: var(--ink-soft); letter-spacing: 0.08em; margin-bottom: 6px; }
+  .gc-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    color: var(--cream);
+    line-height: 1.3;
+    font-weight: 400;
+  }
+  .gc-speaker { font-size: 10px; color: var(--ink-soft); margin-top: 4px; }
+
+  /* ── Scholar Panel ── */
+  .scholar-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .scholar-item {
+    background: rgba(74,82,64,0.12);
+    border: 1px solid rgba(74,82,64,0.25);
+    border-radius: 4px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.18s;
+    position: relative;
+  }
+  .scholar-item:hover {
+    background: rgba(74,82,64,0.22);
+    border-color: rgba(122,138,106,0.45);
+  }
+  .scholar-author {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--olive-light);
+    margin-bottom: 8px;
+  }
+  .scholar-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    color: var(--cream);
+    line-height: 1.35;
+    font-weight: 400;
+    margin-bottom: 10px;
+  }
+  .scholar-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .scholar-bar {
+    flex: 1;
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .scholar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--olive), var(--olive-light));
+    border-radius: 2px;
+    transition: width 0.4s;
+  }
+  .scholar-pct {
+    font-size: 10px;
+    color: var(--olive-light);
+    min-width: 28px;
+    text-align: right;
+  }
+  .gc-item .item-actions {
+    display: flex;
+    position: absolute;
+    top: 8px; right: 8px;
+    gap: 5px;
+  }
+
+  .item-del-btn, .item-hide-btn {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
+    color: rgba(245,240,232,0.35);
+    font-size: 13px;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    font-family: sans-serif;
+    line-height: 1;
+  }
+  .item-del-btn:hover, .item-del-btn:active { background: rgba(180,60,60,0.7); color: #fff; border-color: rgba(180,60,60,0.6); }
+  .item-hide-btn:hover, .item-hide-btn:active { background: rgba(107,94,63,0.5); color: var(--cream); border-color: rgba(201,168,76,0.3); }
+
+  .scholar-item .item-actions {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+  }
+
+  .show-hidden-row {
+    text-align: center;
+    padding: 10px 0 4px;
+    margin-bottom: 10px;
+  }
+  .show-hidden-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: none;
+    border: 1px solid rgba(201,168,76,0.18);
+    color: var(--ink-soft);
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .show-hidden-btn:hover { border-color: rgba(201,168,76,0.4); color: var(--gold-light); }
+
+  .scholar-pages-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--ink-soft);
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Source Sans 3', sans-serif;
+  }
+  .scholar-pages-btn:hover { color: var(--cream); border-color: rgba(201,168,76,0.3); }
+
+  /* ── Streak ── */
+  .streak-row {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 36px;
+  }
+  .streak-day {
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.2s;
+    position: relative;
+    cursor: default;
+  }
+  .streak-day.logged {
+    background: rgba(201,168,76,0.25);
+    border-color: rgba(201,168,76,0.4);
+  }
+  .streak-day.today {
+    border-color: var(--gold);
+    box-shadow: 0 0 8px rgba(201,168,76,0.3);
+  }
+
+  /* ── FAB ── */
+  .fab {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+    border: none;
+    cursor: pointer;
+    font-size: 26px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 24px rgba(201,168,76,0.35), 0 0 0 1px rgba(201,168,76,0.2);
+    transition: all 0.2s;
+    z-index: 50;
+    line-height: 1;
+  }
+  .fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 8px 32px rgba(201,168,76,0.5);
+  }
+  .fab:active { transform: scale(0.94); }
+
+  /* ── Filter row ── */
+  .filter-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .filter-chip {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(201,168,76,0.2);
+    background: none;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-chip.active, .filter-chip:hover {
+    background: rgba(201,168,76,0.1);
+    border-color: rgba(201,168,76,0.45);
+    color: var(--gold-light);
+  }
+
+  /* ── Sync indicator ── */
+  .sync-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 10px;
+    color: var(--ink-soft);
+    letter-spacing: 0.06em;
+  }
+  .sync-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .sync-dot.idle { background: var(--olive-light); }
+  .sync-dot.syncing {
+    background: var(--gold);
+    animation: pulse 1s infinite;
+  }
+  .sync-dot.ok { background: #6abf6a; }
+  .sync-dot.err { background: #c97b7b; }
+  .sync-dot.off { background: #555; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── Settings modal extras ── */
+  .settings-modal { max-width: 580px; max-height: 90vh; overflow-y: auto; }
+  .settings-section { margin-bottom: 24px; }
+  .settings-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+  }
+  .settings-row input { flex: 1; margin: 0; }
+  .settings-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .bk-status { font-size: 12px; color: var(--ink-soft); margin-top: 12px; min-height: 18px; line-height: 1.6; }
+  .bk-last   { font-size: 10px; color: var(--gold-dim); letter-spacing: 0.06em; margin-top: 6px; }
+  .instructions {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.75;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .instructions strong { color: var(--cream); }
+  .instructions ol { padding-left: 18px; margin-top: 8px; }
+  .instructions ol li { margin-bottom: 5px; }
+  .instructions code {
+    font-size: 10px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    font-family: monospace;
+    color: var(--gold-light);
+    padding: 1px 5px;
+  }
+
+  /* ════ READING SECTION ════ */
+
+  .add-book-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    background: none;
+    border: 1px solid rgba(201,168,76,0.25);
+    color: var(--gold-dim);
+    padding: 7px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
+  .add-book-btn:hover {
+    border-color: rgba(201,168,76,0.5);
+    color: var(--gold-light);
+    background: rgba(201,168,76,0.06);
+  }
+
+  .book-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 5px;
+    overflow: hidden;
+    transition: border-color 0.18s;
+    animation: fadeIn 0.25s ease;
+  }
+  .book-card.in-progress { border-color: rgba(122,138,106,0.3); }
+  .book-card.complete    { border-color: rgba(201,168,76,0.45); }
+
+  .book-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    background: rgba(255,255,255,0.02);
+    transition: background 0.15s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .book-card.open .book-card-header { background: rgba(201,168,76,0.06); }
+
+  .book-spine {
+    width: 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    align-self: stretch;
+    min-height: 28px;
+    background: rgba(201,168,76,0.2);
+  }
+  .book-card.complete .book-spine { background: var(--gold-dim); }
+  .book-card.in-progress .book-spine { background: var(--olive-light); }
+
+  .book-info { flex: 1; min-width: 0; }
+  .book-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    font-weight: 400;
+    color: var(--cream);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .book-card.complete .book-title { color: var(--gold-light); }
+  .book-meta {
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 3px;
+    letter-spacing: 0.04em;
+  }
+
+  .book-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .book-bar-outer {
+    width: 72px;
+    height: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .book-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--olive-light), var(--gold));
+    transition: width 0.4s ease;
+  }
+  .book-pct {
+    font-size: 11px;
+    color: var(--ink-soft);
+    min-width: 30px;
+    text-align: right;
+  }
+  .book-chevron {
+    font-size: 10px;
+    color: var(--ink-soft);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .book-card.open .book-chevron { transform: rotate(180deg); }
+
+  .book-detail {
+    display: none;
+    padding: 0 16px 18px 16px;
+    background: rgba(0,0,0,0.15);
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .book-card.open .book-detail { display: block; }
+
+  .detail-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 0 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    margin-bottom: 14px;
+  }
+  .today-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    border-radius: 3px;
+    border: 1px solid rgba(201,168,76,0.3);
+    background: rgba(201,168,76,0.08);
+    color: var(--gold-light);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .today-btn:hover { background: rgba(201,168,76,0.16); border-color: rgba(201,168,76,0.55); }
+  .today-btn.logged {
+    background: rgba(74,82,64,0.25);
+    border-color: rgba(122,138,106,0.4);
+    color: var(--olive-light);
+  }
+
+  .log-today-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(201,168,76,0.2);
+    background: none;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .log-today-btn:hover {
+    border-color: rgba(201,168,76,0.45);
+    color: var(--gold-light);
+    background: rgba(201,168,76,0.07);
+  }
+
+  .detail-del-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: rgba(107,94,63,0.35);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 6px;
+    transition: color 0.15s;
+    line-height: 1;
+  }
+  .detail-del-btn:hover { color: var(--burgundy-light); }
+
+  .reading-log-title {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin-bottom: 10px;
+  }
+  .reading-days {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .day-chip {
+    font-size: 10px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    color: rgba(245,240,232,0.35);
+    cursor: pointer;
+    transition: all 0.12s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .day-chip:active { transform: scale(0.88); }
+  .day-chip.read {
+    background: rgba(201,168,76,0.18);
+    border-color: rgba(201,168,76,0.45);
+    color: var(--gold-light);
+    font-weight: 600;
+  }
+  .day-chip .chip-pages {
+    font-size: 9px;
+    color: var(--olive-light);
+    opacity: 0.85;
+  }
+  .day-chip.read .chip-pages { color: var(--gold-dim); }
+
+  .completed-toggle {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    cursor: pointer;
+    padding: 6px 0;
+    transition: color 0.15s;
+  }
+  .completed-toggle:hover { color: var(--gold-dim); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(201,168,76,0.35); }
+
+  @media (max-width: 600px) {
+    .app { padding: 0 14px 80px; }
+    header { padding: 36px 0 28px; }
+    h1 { font-size: 30px; }
+    .form-row-double { grid-template-columns: 1fr; }
+    .modal { padding: 24px; }
+    .gc-grid { grid-template-columns: 1fr 1fr; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .section-switch-btn { padding: 12px 18px; font-size: 10px; flex: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <div class="header-controls">
+      <div class="sync-indicator" id="sync-indicator">
+        <span class="sync-dot off"></span>No Sheet connected
+      </div>
+      <button class="gear-btn" onclick="openSettingsModal()" title="Settings &amp; Sync">⚙</button>
+    </div>
+    <div class="header-eyebrow">Personal Study &amp; Library Record</div>
+    <h1 id="app-title"><em>Lectio</em> Divina</h1>
+    <div class="header-sub" id="app-sub">LDS Scripture &amp; Study Tracker</div>
+  </header>
+
+  <!-- Section Switcher -->
+  <div class="section-switch">
+    <button class="section-switch-btn active" id="switch-study" onclick="switchSection('study')">✦ Scripture Study</button>
+    <button class="section-switch-btn" id="switch-reading" onclick="switchSection('reading')">📖 Reading</button>
+  </div>
+
+  <!-- ═══════════════ SECTION: SCRIPTURE STUDY ═══════════════ -->
+  <div class="app-section active" id="section-study">
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-total-sessions">0</div>
+        <div class="stat-label">Study Sessions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-streak">0</div>
+        <div class="stat-label">Day Streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-books-started">0</div>
+        <div class="stat-label">Books Started</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-books-complete">0</div>
+        <div class="stat-label">Books Complete</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-gc-talks">0</div>
+        <div class="stat-label">GC Talks Read</div>
+      </div>
+    </div>
+
+    <!-- Streak Calendar (study + reading combined, last 30 days) -->
+    <div class="section-label">Study &amp; Reading Streak — Last 30 Days</div>
+    <div class="streak-row" id="streak-row"></div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('standard-works')">Standard Works</button>
+      <button class="tab-btn" onclick="switchTab('gen-conf')">General Conference</button>
+      <button class="tab-btn" onclick="switchTab('scholars')">LDS Scholarship</button>
+      <button class="tab-btn" onclick="switchTab('journal')">Study Journal</button>
+    </div>
+
+    <!-- Panel: Standard Works -->
+    <div class="panel active" id="panel-standard-works">
+      <div id="corpus-container"></div>
+    </div>
+
+    <!-- Panel: General Conference -->
+    <div class="panel" id="panel-gen-conf">
+      <div class="log-header">
+        <div class="log-title">General Conference Talks</div>
+        <button class="btn btn-ghost" onclick="addGCTalk()">+ Add Custom Talk</button>
+      </div>
+      <div class="filter-row" id="gc-filter-row"></div>
+      <div class="gc-grid" id="gc-grid"></div>
+    </div>
+
+    <!-- Panel: LDS Scholarship -->
+    <div class="panel" id="panel-scholars">
+      <div class="log-header">
+        <div class="log-title">LDS Scholarly Library</div>
+        <button class="btn btn-ghost" onclick="addCustomBook()">+ Add Book</button>
+      </div>
+      <div class="scholar-grid" id="scholar-grid"></div>
+    </div>
+
+    <!-- Panel: Journal -->
+    <div class="panel" id="panel-journal">
+      <div class="log-header">
+        <div class="log-title">Study Journal</div>
+      </div>
+      <div id="journal-entries"></div>
+    </div>
+
+  </div><!-- /#section-study -->
+
+  <!-- ═══════════════ SECTION: READING ═══════════════ -->
+  <div class="app-section" id="section-reading">
+
+    <!-- Stats Dashboard -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-num" id="rt-stat-active">0</div>
+        <div class="stat-label">In Progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="rt-stat-done">0</div>
+        <div class="stat-label">Finished</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="rt-stat-pages">0</div>
+        <div class="stat-label">Pages Read</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="rt-stat-days">0</div>
+        <div class="stat-label">Days Read</div>
+      </div>
+    </div>
+
+    <!-- Active Books -->
+    <div class="section-header">
+      <div class="section-label">Current Reading</div>
+      <button class="add-book-btn" onclick="rtOpenAddModal()">+ Add Book</button>
+    </div>
+    <div id="active-books" class="books-list"></div>
+
+    <!-- Completed Books (collapsible) -->
+    <div id="completed-section" style="margin-top:36px;display:none">
+      <div class="section-header" style="margin-bottom:14px">
+        <div class="section-label">Completed</div>
+        <button class="completed-toggle" id="completed-toggle-btn" onclick="rtToggleCompleted()">▼ Show</button>
+      </div>
+      <div id="completed-books" class="books-list" style="display:none"></div>
+    </div>
+
+  </div><!-- /#section-reading -->
+
+</div><!-- /.app -->
+
+<!-- FAB (context-aware: logs study session or adds book) -->
+<button class="fab" id="fab" onclick="fabClick()" title="Add">＋</button>
+
+<!-- ── Study: Log Session Modal ── -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-title">Log Study Session</div>
+    <div class="modal-subtitle">Record what you read today</div>
+
+    <div class="form-row">
+      <label>Corpus / Source</label>
+      <select id="form-corpus" onchange="updateFormForCorpus()">
+        <option value="">— Select corpus —</option>
+        <optgroup label="Standard Works">
+          <option value="Old Testament">Old Testament</option>
+          <option value="New Testament">New Testament</option>
+          <option value="Book of Mormon">Book of Mormon</option>
+          <option value="Doctrine & Covenants">Doctrine &amp; Covenants</option>
+          <option value="Pearl of Great Price">Pearl of Great Price</option>
+        </optgroup>
+        <optgroup label="General Conference">
+          <option value="General Conference">General Conference Talk</option>
+        </optgroup>
+        <optgroup label="LDS Scholarship">
+          <option value="LDS Scholarship">LDS Scholarly Work</option>
+        </optgroup>
+        <optgroup label="Other">
+          <option value="Come Follow Me">Come Follow Me Manual</option>
+          <option value="Other">Other</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div class="form-row" id="form-book-row">
+      <label>Book / Work</label>
+      <input type="text" id="form-book" placeholder="e.g. Genesis, Mosiah, 2 Nephi…" autocomplete="off">
+    </div>
+
+    <div class="form-row">
+      <label>Reference / Passage</label>
+      <input type="text" id="form-ref" placeholder="e.g. Genesis 1–3, Mosiah 2–5, D&amp;C 76">
+    </div>
+
+    <div class="form-row-double">
+      <div class="form-row">
+        <label>Date</label>
+        <input type="date" id="form-date">
+      </div>
+      <div class="form-row">
+        <label>Min. Spent (opt.)</label>
+        <input type="number" id="form-minutes" placeholder="30" min="1" max="480">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>Study Note (optional)</label>
+      <textarea id="form-note" placeholder="Insights, cross-references, questions for further study…"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEntry()">Log Session</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Study: Scholar Progress Modal ── -->
+<div class="modal-overlay" id="scholar-modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeScholarModal()">×</button>
+    <div class="modal-title" id="scholar-modal-title"></div>
+    <div class="modal-subtitle" id="scholar-modal-sub"></div>
+    <div class="form-row">
+      <label>Current Page</label>
+      <input type="number" id="scholar-modal-page" min="0" placeholder="e.g. 147" oninput="updateScholarPct()">
+    </div>
+    <div style="font-size:11px;color:var(--ink-soft);margin-top:-10px;margin-bottom:16px;text-align:right" id="scholar-pct-display"></div>
+    <div class="form-row">
+      <label>Note</label>
+      <textarea id="scholar-modal-note" placeholder="Where you left off, key themes…" style="min-height:60px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeScholarModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveScholarProgress()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Reading: Add Book Modal ── -->
+<div class="modal-overlay" id="add-modal-overlay">
+  <div class="modal" style="max-width:480px">
+    <button class="modal-close" onclick="rtCloseAddModal()">×</button>
+    <div class="modal-title">Add a Book</div>
+    <div class="modal-subtitle">Enter the title and total page count</div>
+    <div class="form-row">
+      <label for="inp-title">Title</label>
+      <input type="text" id="inp-title" placeholder="e.g. The Brothers Karamazov" autocomplete="off" />
+    </div>
+    <div class="form-row">
+      <label for="inp-author">Author <span style="font-size:9px;color:var(--ink-soft);letter-spacing:0">(optional)</span></label>
+      <input type="text" id="inp-author" placeholder="e.g. Fyodor Dostoevsky" autocomplete="off" />
+    </div>
+    <div class="form-row">
+      <label for="inp-pages">Total Pages</label>
+      <input type="number" id="inp-pages" placeholder="e.g. 824" min="1" max="9999" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="rtCloseAddModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="rtSaveBook()">Add Book</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Reading: Log Pages Modal ── -->
+<div class="modal-overlay" id="log-modal-overlay">
+  <div class="modal" style="max-width:480px">
+    <button class="modal-close" onclick="rtCloseLogModal()">×</button>
+    <div class="modal-title" id="log-modal-title">Log Reading</div>
+    <div class="modal-subtitle">How many pages did you read?</div>
+    <div class="form-row">
+      <label for="log-date">Date</label>
+      <input type="date" id="log-date" />
+    </div>
+    <div class="form-row">
+      <label for="log-pages">Pages Read</label>
+      <input type="number" id="log-pages" placeholder="e.g. 22" min="1" max="9999" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="rtCloseLogModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="rtSaveLog()">Log It</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Shared: Settings / Sync Modal ── -->
+<div class="modal-overlay" id="settings-modal-overlay">
+  <div class="modal settings-modal">
+    <button class="modal-close" onclick="closeSettingsModal()">×</button>
+    <div class="modal-title">Settings</div>
+    <div class="modal-subtitle">One Google Sheet syncs both Study &amp; Reading</div>
+
+    <div class="settings-section">
+      <label for="sheets-url-input">Apps Script Web App URL</label>
+      <div class="settings-row">
+        <input type="text" id="sheets-url-input" placeholder="https://script.google.com/macros/s/…/exec"
+          style="font-size:12px;font-family:'Courier New',monospace;color:var(--gold-light)" />
+        <button class="btn btn-ghost" style="white-space:nowrap;padding:10px 16px" onclick="saveSheetUrl()">Save</button>
+      </div>
+      <span id="url-saved-msg" style="font-size:10px;color:var(--gold-dim);letter-spacing:0.1em;margin-top:6px;display:block;min-height:16px"></span>
+      <div class="settings-btns">
+        <button class="btn btn-primary" id="bk-btn" style="padding:10px 20px" onclick="doBackup()">Push to Sheet</button>
+        <button class="btn btn-ghost" style="padding:9px 18px" onclick="doRestore()">Pull from Sheet</button>
+        <button class="btn btn-ghost" style="padding:9px 18px" onclick="window.open('https://docs.google.com/spreadsheets','_blank')">Open Sheets ↗</button>
+      </div>
+      <div class="bk-status" id="bk-status"></div>
+      <div class="bk-last"   id="bk-last">Never synced</div>
+    </div>
+
+    <div class="instructions">
+      <strong style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase">Setup Instructions</strong>
+      <ol>
+        <li>Open <strong>Google Sheets</strong> and create a new spreadsheet named <code>Study &amp; Reading Tracker</code>.</li>
+        <li>Go to <strong>Extensions → Apps Script</strong>.</li>
+        <li>Delete the placeholder code and paste the entire contents of the <code>Code.gs</code> file provided alongside this tracker.</li>
+        <li>Click <strong>Save</strong>, then <strong>Deploy → New Deployment</strong>. Type: <em>Web app</em>. Execute as: <em>Me</em>. Who has access: <em>Anyone</em>.</li>
+        <li>Copy the deployed <strong>Web app URL</strong> (ends in <code>/exec</code>) and paste it above, then click <strong>Save</strong>.</li>
+        <li>Click <strong>Push to Sheet</strong> for your first sync. The sheet auto-populates with readable tabs: <em>Reading Books</em>, <em>Reading Logs</em>, <em>Study Journal</em>, <em>Scripture Progress</em>, <em>GC Talks</em>, and <em>Scholar Books</em> — plus a <em>_data</em> tab that holds the source-of-truth JSON.</li>
+      </ol>
+      <div style="margin-top:10px;color:var(--gold-dim)">After setup, the tracker auto-syncs 8 seconds after any change in either section. The green dot in the header confirms it's live.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════
+// SAFE STORAGE — works on file://, http://, and https://
+// ═══════════════════════════════════════════════════
+const _memStore = {};
+const store = (function() {
+  try {
+    localStorage.setItem('__test__', '1');
+    localStorage.removeItem('__test__');
+    return {
+      get: (k) => { try { return localStorage.getItem(k); } catch(e) { return _memStore[k] || null; } },
+      set: (k, v) => { try { localStorage.setItem(k, v); } catch(e) { _memStore[k] = v; } },
+      remove: (k) => { try { localStorage.removeItem(k); } catch(e) { delete _memStore[k]; } }
+    };
+  } catch(e) {
+    return {
+      get: (k) => _memStore[k] || null,
+      set: (k, v) => { _memStore[k] = v; },
+      remove: (k) => { delete _memStore[k]; }
+    };
+  }
+})();
+
+// ═══════════════════════════════════════════════════
+// DATA — Standard Works
+// ═══════════════════════════════════════════════════
+const CORPORA = [
+  {
+    id: 'ot', label: 'Old Testament',
+    color: '#b8860b',
+    books: [
+      {name:'Genesis',chapters:50},{name:'Exodus',chapters:40},{name:'Leviticus',chapters:27},
+      {name:'Numbers',chapters:36},{name:'Deuteronomy',chapters:34},{name:'Joshua',chapters:24},
+      {name:'Judges',chapters:21},{name:'Ruth',chapters:4},{name:'1 Samuel',chapters:31},
+      {name:'2 Samuel',chapters:24},{name:'1 Kings',chapters:22},{name:'2 Kings',chapters:25},
+      {name:'1 Chronicles',chapters:29},{name:'2 Chronicles',chapters:36},{name:'Ezra',chapters:10},
+      {name:'Nehemiah',chapters:13},{name:'Esther',chapters:10},{name:'Job',chapters:42},
+      {name:'Psalms',chapters:150},{name:'Proverbs',chapters:31},{name:'Ecclesiastes',chapters:12},
+      {name:'Song of Solomon',chapters:8},{name:'Isaiah',chapters:66},{name:'Jeremiah',chapters:52},
+      {name:'Lamentations',chapters:5},{name:'Ezekiel',chapters:48},{name:'Daniel',chapters:12},
+      {name:'Hosea',chapters:14},{name:'Joel',chapters:3},{name:'Amos',chapters:9},
+      {name:'Obadiah',chapters:1},{name:'Jonah',chapters:4},{name:'Micah',chapters:7},
+      {name:'Nahum',chapters:3},{name:'Habakkuk',chapters:3},{name:'Zephaniah',chapters:3},
+      {name:'Haggai',chapters:2},{name:'Zechariah',chapters:14},{name:'Malachi',chapters:4}
+    ]
+  },
+  {
+    id: 'nt', label: 'New Testament',
+    color: '#6b2020',
+    books: [
+      {name:'Matthew',chapters:28},{name:'Mark',chapters:16},{name:'Luke',chapters:24},
+      {name:'John',chapters:21},{name:'Acts',chapters:28},{name:'Romans',chapters:16},
+      {name:'1 Corinthians',chapters:16},{name:'2 Corinthians',chapters:13},{name:'Galatians',chapters:6},
+      {name:'Ephesians',chapters:6},{name:'Philippians',chapters:4},{name:'Colossians',chapters:4},
+      {name:'1 Thessalonians',chapters:5},{name:'2 Thessalonians',chapters:3},{name:'1 Timothy',chapters:6},
+      {name:'2 Timothy',chapters:4},{name:'Titus',chapters:3},{name:'Philemon',chapters:1},
+      {name:'Hebrews',chapters:13},{name:'James',chapters:5},{name:'1 Peter',chapters:5},
+      {name:'2 Peter',chapters:3},{name:'1 John',chapters:5},{name:'2 John',chapters:1},
+      {name:'3 John',chapters:1},{name:'Jude',chapters:1},{name:'Revelation',chapters:22}
+    ]
+  },
+  {
+    id: 'bom', label: 'Book of Mormon',
+    color: '#4a5240',
+    books: [
+      {name:'1 Nephi',chapters:22},{name:'2 Nephi',chapters:33},{name:'Jacob',chapters:7},
+      {name:'Enos',chapters:1},{name:'Jarom',chapters:1},{name:'Omni',chapters:1},
+      {name:'Words of Mormon',chapters:1},{name:'Mosiah',chapters:29},{name:'Alma',chapters:63},
+      {name:'Helaman',chapters:16},{name:'3 Nephi',chapters:30},{name:'4 Nephi',chapters:1},
+      {name:'Mormon',chapters:9},{name:'Ether',chapters:15},{name:'Moroni',chapters:10}
+    ]
+  },
+  {
+    id: 'dc', label: 'Doctrine & Covenants',
+    color: '#1e3a5f',
+    books: [
+      {name:'D&C 1–10',chapters:10},{name:'D&C 11–20',chapters:10},{name:'D&C 21–30',chapters:10},
+      {name:'D&C 31–40',chapters:10},{name:'D&C 41–50',chapters:10},{name:'D&C 51–60',chapters:10},
+      {name:'D&C 61–70',chapters:10},{name:'D&C 71–80',chapters:10},{name:'D&C 81–90',chapters:10},
+      {name:'D&C 91–100',chapters:10},{name:'D&C 101–110',chapters:10},{name:'D&C 111–120',chapters:10},
+      {name:'D&C 121–130',chapters:10},{name:'D&C 131–138',chapters:8},
+      {name:'Official Declarations',chapters:2}
+    ]
+  },
+  {
+    id: 'pgp', label: 'Pearl of Great Price',
+    color: '#5a3060',
+    books: [
+      {name:'Moses',chapters:8},{name:'Abraham',chapters:5},
+      {name:'Joseph Smith — Matthew',chapters:1},{name:'Joseph Smith — History',chapters:1},
+      {name:'Articles of Faith',chapters:1}
+    ]
+  }
+];
+
+// ═══════════════════════════════════════════════════
+// DATA — General Conference
+// ═══════════════════════════════════════════════════
+const GC_TALKS = [
+  // ── October 2024 ──────────────────────────────────
+  {id:'gc_o24_1',  season:'Oct 2024', name:'The Triumph of Hope',                              speaker:'Elder Neil L. Andersen'},
+  {id:'gc_o24_2',  season:'Oct 2024', name:'Live Up to Your Privileges',                       speaker:'President Emily Belle Freeman'},
+  {id:'gc_o24_3',  season:'Oct 2024', name:"God's Favorite",                                   speaker:'Elder Karl D. Hirst'},
+  {id:'gc_o24_4',  season:'Oct 2024', name:'This Is My Gospel — This Is My Church',             speaker:'Elder Dale G. Renlund'},
+  {id:'gc_o24_5',  season:'Oct 2024', name:'Trusting Our Father',                              speaker:'Elder David P. Homer'},
+  {id:'gc_o24_6',  season:'Oct 2024', name:'God Loves All His Children',                       speaker:'Elder Gregorio E. Casillas'},
+  {id:'gc_o24_7',  season:'Oct 2024', name:'Following Christ',                                 speaker:'President Dallin H. Oaks'},
+  {id:'gc_o24_8',  season:'Oct 2024', name:"Burying Our 'Weapons of Rebellion'",               speaker:'Elder D. Todd Christofferson'},
+  {id:'gc_o24_9',  season:'Oct 2024', name:'Avoiding Pride',                                   speaker:'Elder David A. Bednar'},
+  {id:'gc_o24_10', season:'Oct 2024', name:"The Divine DNA of Jesus Christ",                   speaker:'President Jeffrey R. Holland'},
+  {id:'gc_o24_11', season:'Oct 2024', name:'Simple Is the Doctrine of Jesus Christ',           speaker:'President Henry B. Eyring'},
+  {id:'gc_o24_12', season:'Oct 2024', name:'Days Never to Be Forgotten',                       speaker:'Elder Gary E. Stevenson'},
+  {id:'gc_o24_13', season:'Oct 2024', name:'The Lord Jesus Christ Will Come Again',            speaker:'President Russell M. Nelson'},
+
+  // ── April 2024 ────────────────────────────────────
+  {id:'gc_a24_1',  season:'Apr 2024', name:'Hallmarks of Happiness',                           speaker:'Elder Jeffrey R. Holland'},
+  {id:'gc_a24_2',  season:'Apr 2024', name:'Be Still, and Know That I Am God',                 speaker:'Elder David A. Bednar'},
+  {id:'gc_a24_3',  season:'Apr 2024', name:'All Things for Your Good',                         speaker:'Elder Gerrit W. Gong'},
+  {id:'gc_a24_4',  season:'Apr 2024', name:'Be One With Christ',                               speaker:'Elder Quentin L. Cook'},
+  {id:'gc_a24_5',  season:'Apr 2024', name:"God Is Now Calling You",                           speaker:'Elder Patrick Kearon'},
+  {id:'gc_a24_6',  season:'Apr 2024', name:'Miracles of the Restored Gospel',                  speaker:'Elder Dieter F. Uchtdorf'},
+  {id:'gc_a24_7',  season:'Apr 2024', name:'Priesthood Keys',                                  speaker:'President Russell M. Nelson'},
+
+  // ── October 2023 ─────────────────────────────────
+  {id:'gc_o23_1',  season:'Oct 2023', name:'Jesus Christ Is the Treasure',                     speaker:'Elder Dale G. Renlund'},
+  {id:'gc_o23_2',  season:'Oct 2023', name:'Eternal Truth',                                    speaker:'Elder John C. Pingree Jr.'},
+  {id:'gc_o23_3',  season:'Oct 2023', name:'Love Is Spoken Here',                              speaker:'Elder Gerrit W. Gong'},
+  {id:'gc_o23_4',  season:'Oct 2023', name:'Think Celestial!',                                 speaker:'President Russell M. Nelson'},
+  {id:'gc_o23_5',  season:'Oct 2023', name:'The Sealing Power',                                speaker:'Elder D. Todd Christofferson'},
+  {id:'gc_o23_6',  season:'Oct 2023', name:'Be Meek and Lowly of Heart',                       speaker:'Elder Ulisses Soares'},
+  {id:'gc_o23_7',  season:'Oct 2023', name:"Faithful Parents and the Prodigal's Journey",      speaker:'Elder Dieter F. Uchtdorf'},
+
+  // ── April 2023 ────────────────────────────────────
+  {id:'gc_a23_1',  season:'Apr 2023', name:'Peacemakers Needed',                               speaker:'President Russell M. Nelson'},
+  {id:'gc_a23_2',  season:'Apr 2023', name:'Jesus Christ Is the Strength of Parents',          speaker:'Elder Dieter F. Uchtdorf'},
+  {id:'gc_a23_3',  season:'Apr 2023', name:'Remember What Matters Most',                       speaker:'President M. Russell Ballard'},
+  {id:'gc_a23_4',  season:'Apr 2023', name:'Becoming Like Him',                                speaker:'Elder Ulisses Soares'},
+  {id:'gc_a23_5',  season:'Apr 2023', name:'Our Heartfelt All',                                speaker:'Elder Jeffrey R. Holland'},
+  {id:'gc_a23_6',  season:'Apr 2023', name:'The Power of Covenants',                           speaker:'Elder Dale G. Renlund'},
+];
+
+// ═══════════════════════════════════════════════════
+// DATA — LDS Scholarly Library
+// ═══════════════════════════════════════════════════
+const SCHOLAR_BOOKS = [
+  {id:'sb1', author:'Hugh Nibley', title:'Temple and Cosmos', pages:600},
+  {id:'sb2', author:'Hugh Nibley', title:'An Approach to the Book of Mormon', pages:450},
+  {id:'sb3', author:'Hugh Nibley', title:'The Message of the Joseph Smith Papyri', pages:572},
+  {id:'sb4', author:'Hugh Nibley', title:'Lehi in the Desert / World of Jaredites / There Were Jaredites', pages:490},
+  {id:'sb5', author:'Richard L. Bushman', title:'Joseph Smith: Rough Stone Rolling', pages:740},
+  {id:'sb6', author:'Richard L. Bushman', title:'Believing History', pages:320},
+  {id:'sb7', author:'Terryl Givens', title:'By the Hand of Mormon', pages:320},
+  {id:'sb8', author:'Terryl Givens', title:'Wrestling the Angel: The Foundations of Mormon Thought', pages:416},
+  {id:'sb9', author:'Terryl & Fiona Givens', title:'The Christ Who Heals', pages:160},
+  {id:'sb10', author:'Terryl & Fiona Givens', title:'The Crucible of Doubt', pages:160},
+  {id:'sb11', author:'Patrick Q. Mason', title:'Planted: Belief and Belonging in an Age of Doubt', pages:152},
+  {id:'sb12', author:'Patrick Q. Mason', title:'Restoration: God\'s Call to the 21st-Century World', pages:264},
+  {id:'sb13', author:'S. Kent Brown', title:'From Jerusalem to Zarahemla', pages:312},
+  {id:'sb14', author:'John W. Welch', title:'The Sermon on the Mount in the Light of the Temple', pages:248},
+  {id:'sb15', author:'Margaret Barker', title:'The Gate of Heaven', pages:296},
+  {id:'sb16', author:'Margaret Barker', title:'Temple Theology', pages:128},
+  {id:'sb17', author:'John Tvedtnes', title:'The Most Correct Book', pages:350},
+  {id:'sb18', author:'Brant Gardner', title:'Second Witness (6 vols.)', pages:2400},
+  {id:'sb19', author:'David Rolph Seely & John W. Welch (eds.)', title:'Illuminating the Sermon at the Temple', pages:320},
+  {id:'sb20', author:'Richard D. Draper et al.', title:'A Commentary on the Book of Mormon (7 vols.)', pages:2800},
+];
+
+// ═══════════════════════════════════════════════════
+// UNIFIED STATE
+//   state.study   — scripture study tracker data
+//   state.reading — reading tracker data
+// One localStorage key, one Google Sheet, one Apps Script.
+// ═══════════════════════════════════════════════════
+var SHEETS_URL = '';
+var _readyToSync = false;   // blocks auto-push until init pull completes
+var currentSection = 'study';
+
+const STATE_KEY = 'unified_tracker_v1';
+
+function studyDefaults() {
+  return {
+    entries: [],
+    bookProgress: {},
+    chapterProgress: {},
+    gcRead: {},
+    scholarProgress: {},
+    gcCustom: [],
+    scholarCustom: [],
+    hiddenGC: [],
+    hiddenScholars: []
+  };
+}
+function readingDefaults() {
+  return { books: [], logs: [] };
+}
+
+let state = loadState();
+
+function loadState() {
+  const defaults = { study: studyDefaults(), reading: readingDefaults() };
+  try {
+    const raw = store.get(STATE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      return {
+        study:   Object.assign({}, defaults.study,   saved.study   || {}),
+        reading: Object.assign({}, defaults.reading, saved.reading || {})
+      };
+    }
+  } catch(e) {}
+
+  // ── One-time migration from the two standalone apps ──
+  let migrated = false;
+  try {
+    const oldStudy = store.get('lds_tracker_v2');
+    if (oldStudy) {
+      defaults.study = Object.assign({}, defaults.study, JSON.parse(oldStudy));
+      migrated = true;
+    }
+  } catch(e) {}
+  try {
+    const oldReading = store.get('rt_state_v1');  // reading tracker used prefix 'rt_'
+    if (oldReading) {
+      defaults.reading = Object.assign({}, defaults.reading, JSON.parse(oldReading));
+      migrated = true;
+    }
+  } catch(e) {}
+  if (migrated) {
+    try { store.set(STATE_KEY, JSON.stringify(defaults)); } catch(e) {}
+  }
+  return defaults;
+}
+
+function saveState() {
+  store.set(STATE_KEY, JSON.stringify(state));
+  scheduleSync();
+}
+
+// ═══════════════════════════════════════════════════
+// SHARED HELPERS
+// ═══════════════════════════════════════════════════
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+function formatDateShort(ds) {
+  if (!ds) return '';
+  const d = new Date(ds + 'T12:00:00');
+  if (isNaN(d.getTime())) return ds;
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+}
+function formatDateLong(ds) {
+  if (!ds) return 'Unknown date';
+  const d = new Date(ds + 'T12:00:00');
+  if (isNaN(d.getTime())) return ds;
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════
+// SECTION SWITCHING
+// ═══════════════════════════════════════════════════
+function switchSection(name) {
+  currentSection = name;
+  store.set('last_section', name);
+
+  document.getElementById('switch-study').classList.toggle('active', name === 'study');
+  document.getElementById('switch-reading').classList.toggle('active', name === 'reading');
+  document.getElementById('section-study').classList.toggle('active', name === 'study');
+  document.getElementById('section-reading').classList.toggle('active', name === 'reading');
+
+  const title = document.getElementById('app-title');
+  const sub = document.getElementById('app-sub');
+  if (name === 'study') {
+    title.innerHTML = '<em>Lectio</em> Divina';
+    sub.textContent = 'LDS Scripture & Study Tracker';
+  } else {
+    title.innerHTML = 'Reading <em>Tracker</em>';
+    sub.textContent = 'Track your books, one day at a time';
+  }
+}
+
+function fabClick() {
+  if (currentSection === 'study') openLogModal();
+  else rtOpenAddModal();
+}
+
+// ═══════════════════════════════════════════════════
+// GOOGLE SHEETS SYNC (shared — one sheet, one script)
+//   save: POST (no-cors)  — handles large payloads
+//   load: JSONP GET       — readable from any origin
+// ═══════════════════════════════════════════════════
+var _syncTimer = null;
+
+function scheduleSync() {
+  if (!SHEETS_URL || !_readyToSync) return;
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(pushToSheets, 8000); // debounce 8s after last edit
+}
+
+function pushToSheets() {
+  if (!SHEETS_URL) return Promise.resolve();
+  setSyncStatus('syncing');
+  return fetch(SHEETS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'data=' + encodeURIComponent(JSON.stringify(state))
+  }).then(() => {
+    setSyncStatus('ok');
+    store.set('unified_last_backup', new Date().toISOString());
+    updateLastBackupLabel();
+  }).catch(() => {
+    setSyncStatus('err');
+  });
+}
+
+function jsonpCall(url, callback) {
+  const cbName = '_ut_' + Date.now() + '_' + Math.floor(Math.random()*9999);
+  const script = document.createElement('script');
+  const timer = setTimeout(function() {
+    cleanup();
+    callback(null);
+  }, 15000);
+
+  function cleanup() {
+    clearTimeout(timer);
+    delete window[cbName];
+    if (script.parentNode) script.parentNode.removeChild(script);
+  }
+
+  window[cbName] = function(data) {
+    cleanup();
+    callback(data);
+  };
+
+  script.src = url + (url.indexOf('?') > -1 ? '&' : '?') + 'callback=' + cbName;
+  script.onerror = function() { cleanup(); callback(null); };
+  document.head.appendChild(script);
+}
+
+function fetchFromSheets(cb) {
+  if (!SHEETS_URL) { cb(null, false); return; }
+  const url = SHEETS_URL + '?action=load&nocache=' + Date.now();
+  jsonpCall(url, function(data) {
+    if (data && typeof data === 'object' && (data.study || data.reading)) {
+      cb(data, true);
+    } else {
+      cb(null, false);
+    }
+  });
+}
+
+function mergeFromSheets(remote) {
+  if (!remote || typeof remote !== 'object') return false;
+  let changed = false;
+  const rs = remote.study || {};
+  const rr = remote.reading || {};
+
+  // ── Study: entries (add any not present locally by id) ──
+  if (Array.isArray(rs.entries)) {
+    const localIds = new Set(state.study.entries.map(e => e.id));
+    rs.entries.forEach(e => {
+      if (!localIds.has(e.id)) { state.study.entries.push(e); changed = true; }
+    });
+  }
+  // ── Study: bookProgress (remote wins on higher pct) ──
+  if (rs.bookProgress && typeof rs.bookProgress === 'object') {
+    Object.keys(rs.bookProgress).forEach(k => {
+      const rp = rs.bookProgress[k] || {};
+      const lp = state.study.bookProgress[k] || {};
+      if ((rp.pct || 0) > (lp.pct || 0)) { state.study.bookProgress[k] = rp; changed = true; }
+    });
+  }
+  // ── Study: chapterProgress (union) ──
+  if (rs.chapterProgress && typeof rs.chapterProgress === 'object') {
+    Object.keys(rs.chapterProgress).forEach(k => {
+      const remoteArr = rs.chapterProgress[k] || [];
+      const localArr = state.study.chapterProgress[k] || [];
+      const merged = [...new Set([...localArr, ...remoteArr])];
+      if (merged.length > localArr.length) {
+        state.study.chapterProgress[k] = merged;
+        changed = true;
+      }
+    });
+  }
+  // ── Study: gcRead (union) ──
+  if (rs.gcRead && typeof rs.gcRead === 'object') {
+    Object.keys(rs.gcRead).forEach(k => {
+      if (rs.gcRead[k] && !state.study.gcRead[k]) { state.study.gcRead[k] = true; changed = true; }
+    });
+  }
+  // ── Study: scholarProgress (remote wins on higher pct) ──
+  if (rs.scholarProgress && typeof rs.scholarProgress === 'object') {
+    Object.keys(rs.scholarProgress).forEach(k => {
+      const rp = rs.scholarProgress[k] || {};
+      const lp = state.study.scholarProgress[k] || {};
+      if ((rp.pct || 0) > (lp.pct || 0)) { state.study.scholarProgress[k] = rp; changed = true; }
+    });
+  }
+  // ── Study: custom GC talks ──
+  if (Array.isArray(rs.gcCustom)) {
+    const localIds = new Set(state.study.gcCustom.map(t => t.id));
+    rs.gcCustom.forEach(t => {
+      if (!localIds.has(t.id)) { state.study.gcCustom.push(t); changed = true; }
+    });
+  }
+  // ── Study: custom scholar books ──
+  if (Array.isArray(rs.scholarCustom)) {
+    const localIds = new Set(state.study.scholarCustom.map(b => b.id));
+    rs.scholarCustom.forEach(b => {
+      if (!localIds.has(b.id)) { state.study.scholarCustom.push(b); changed = true; }
+    });
+  }
+
+  // ── Reading: books (add any not present locally by id) ──
+  if (Array.isArray(rr.books)) {
+    const localIds = new Set(state.reading.books.map(b => b.id));
+    rr.books.forEach(b => {
+      if (!localIds.has(b.id)) { state.reading.books.push(b); changed = true; }
+    });
+  }
+  // ── Reading: logs ──
+  if (Array.isArray(rr.logs)) {
+    const localLogIds = new Set(state.reading.logs.map(l => l.id));
+    rr.logs.forEach(l => {
+      if (!localLogIds.has(l.id)) { state.reading.logs.push(l); changed = true; }
+    });
+  }
+
+  if (changed) store.set(STATE_KEY, JSON.stringify(state));
+  return changed;
+}
+
+function setSyncStatus(status) {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  if (status === 'syncing') {
+    el.innerHTML = '<span class="sync-dot syncing"></span>Syncing…';
+  } else if (status === 'ok') {
+    el.innerHTML = '<span class="sync-dot ok"></span>Saved to Sheet';
+    setTimeout(() => { if (el) el.innerHTML = '<span class="sync-dot idle"></span>Auto-sync on'; }, 3000);
+  } else if (status === 'err') {
+    el.innerHTML = '<span class="sync-dot err"></span>Sync failed';
+  } else {
+    el.innerHTML = SHEETS_URL
+      ? '<span class="sync-dot idle"></span>Auto-sync on'
+      : '<span class="sync-dot off"></span>No Sheet connected';
+  }
+}
+
+function updateLastBackupLabel() {
+  const el = document.getElementById('bk-last');
+  if (!el) return;
+  const ts = store.get('unified_last_backup');
+  el.textContent = ts ? 'Last sync: ' + new Date(ts).toLocaleString() : 'Never synced';
+}
+
+// ── Settings modal ──
+function openSettingsModal() {
+  const urlInput = document.getElementById('sheets-url-input');
+  if (urlInput && SHEETS_URL) urlInput.value = SHEETS_URL;
+  updateLastBackupLabel();
+  document.getElementById('settings-modal-overlay').classList.add('open');
+}
+function closeSettingsModal() {
+  document.getElementById('settings-modal-overlay').classList.remove('open');
+}
+function saveSheetUrl() {
+  const val = document.getElementById('sheets-url-input').value.trim();
+  SHEETS_URL = val;
+  store.set('unified_sheets_url', val);
+  setSyncStatus('idle');
+  const msg = document.getElementById('url-saved-msg');
+  msg.textContent = val ? '✓ URL saved' : '✗ Cleared';
+  setTimeout(() => { msg.textContent = ''; }, 2500);
+}
+
+function doBackup() {
+  if (!SHEETS_URL) {
+    document.getElementById('bk-status').innerHTML = '<span style="color:#c97b7b">Paste your Apps Script URL above first.</span>';
+    return;
+  }
+  const btn = document.getElementById('bk-btn');
+  const status = document.getElementById('bk-status');
+  btn.disabled = true;
+  status.innerHTML = '<span style="color:var(--gold-light)">Sending to Google Sheets…</span>';
+  clearTimeout(_syncTimer);
+  pushToSheets().then(() => {
+    return new Promise(r => setTimeout(r, 1500));
+  }).then(() => {
+    // Pull back to confirm
+    fetchFromSheets((remote, ok) => {
+      btn.disabled = false;
+      if (!ok || !remote) {
+        status.innerHTML = '<span style="color:var(--gold-light)">✓ Sent. Could not read back to confirm — check URL/deployment if data is missing.</span>';
+        return;
+      }
+      const changed = mergeFromSheets(remote);
+      if (changed) { renderStudy(); rtRenderAll(); }
+      const sessions = state.study.entries.length;
+      const gcDone = Object.values(state.study.gcRead).filter(Boolean).length;
+      const books = state.reading.books.length;
+      const logs = state.reading.logs.length;
+      status.innerHTML =
+        '<span style="color:var(--gold-light)">✓ Backed up &amp; confirmed.</span>' +
+        '<div style="margin-top:10px;font-size:11px;color:var(--ink-soft);line-height:1.7">' +
+        '✦ ' + sessions + ' study sessions · ' + gcDone + ' GC talks read<br>' +
+        '📖 ' + books + ' books · ' + logs + ' reading log entries</div>';
+      updateLastBackupLabel();
+      setTimeout(() => { if (status) status.innerHTML = ''; }, 8000);
+    });
+  }).catch(() => {
+    btn.disabled = false;
+    status.innerHTML = '<span style="color:#c97b7b">✗ Backup failed. Check your URL and connection.</span>';
+  });
+}
+
+function doRestore() {
+  if (!SHEETS_URL) {
+    document.getElementById('bk-status').innerHTML = '<span style="color:#c97b7b">No Sheet URL set.</span>';
+    return;
+  }
+  const status = document.getElementById('bk-status');
+  status.innerHTML = '<span style="color:var(--gold-light)">Fetching from Google Sheets…</span>';
+  fetchFromSheets((remote, ok) => {
+    if (!ok || !remote) {
+      status.innerHTML = '<span style="color:#c97b7b">Could not reach sheet. Check URL and redeploy.</span>';
+      return;
+    }
+    const changed = mergeFromSheets(remote);
+    if (changed) {
+      renderStudy(); rtRenderAll();
+      status.innerHTML = '<span style="color:var(--gold-light)">✓ Merged data from sheet.</span>';
+    } else {
+      status.innerHTML = '<span style="color:var(--ink-soft)">Already up to date — nothing new from sheet.</span>';
+    }
+    setTimeout(() => { if (status) status.innerHTML = ''; }, 6000);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// ═══════════════  STUDY SECTION  ═══════════════════
+// ═══════════════════════════════════════════════════
+
+// ── Scholar progress modal ──
+let currentScholarId = null;
+
+function openScholarModal(bookId) {
+  const book = [...SCHOLAR_BOOKS, ...state.study.scholarCustom].find(b => b.id === bookId);
+  if (!book) return;
+  currentScholarId = bookId;
+  const prog = state.study.scholarProgress[bookId] || {};
+  document.getElementById('scholar-modal-title').textContent = book.title;
+  document.getElementById('scholar-modal-sub').textContent = book.author + ' · ' + book.pages + ' pages';
+  document.getElementById('scholar-modal-page').value = prog.currentPage || '';
+  document.getElementById('scholar-modal-note').value = prog.note || '';
+  const pctDisplay = document.getElementById('scholar-pct-display');
+  if (prog.currentPage && book.pages) {
+    const pct = Math.round((prog.currentPage / book.pages) * 100);
+    pctDisplay.textContent = 'Page ' + prog.currentPage + ' of ' + book.pages + ' — ' + pct + '%';
+  } else {
+    pctDisplay.textContent = '';
+  }
+  document.getElementById('scholar-modal-overlay').classList.add('open');
+}
+
+function updateScholarPct() {
+  const book = [...SCHOLAR_BOOKS, ...state.study.scholarCustom].find(b => b.id === currentScholarId);
+  if (!book) return;
+  const page = parseInt(document.getElementById('scholar-modal-page').value) || 0;
+  const pctDisplay = document.getElementById('scholar-pct-display');
+  if (page > 0 && book.pages) {
+    const pct = Math.min(100, Math.round((page / book.pages) * 100));
+    pctDisplay.textContent = 'Page ' + page + ' of ' + book.pages + ' — ' + pct + '%';
+  } else {
+    pctDisplay.textContent = '';
+  }
+}
+
+function closeScholarModal() {
+  document.getElementById('scholar-modal-overlay').classList.remove('open');
+  currentScholarId = null;
+}
+
+function saveScholarProgress() {
+  if (!currentScholarId) return;
+  const book = [...SCHOLAR_BOOKS, ...state.study.scholarCustom].find(b => b.id === currentScholarId);
+  const currentPage = parseInt(document.getElementById('scholar-modal-page').value) || 0;
+  const pct = (book && book.pages && currentPage)
+    ? Math.min(100, Math.round((currentPage / book.pages) * 100))
+    : 0;
+  const note = document.getElementById('scholar-modal-note').value.trim();
+  state.study.scholarProgress[currentScholarId] = { pct, currentPage, note };
+  saveState();
+  closeScholarModal();
+  renderScholars();
+}
+
+// ── Render: streak (study + reading combined) ──
+function allLoggedDates() {
+  const dates = new Set(state.study.entries.map(e => e.date));
+  state.reading.logs.forEach(l => dates.add(l.date));
+  return dates;
+}
+
+function renderStreak() {
+  const row = document.getElementById('streak-row');
+  row.innerHTML = '';
+  const today = new Date();
+  const loggedDates = allLoggedDates();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    const div = document.createElement('div');
+    div.className = 'streak-day' + (loggedDates.has(ds) ? ' logged' : '') + (i===0 ? ' today' : '');
+    div.title = ds;
+    row.appendChild(div);
+  }
+}
+
+// ── Render: study stats ──
+function renderStudyStats() {
+  document.getElementById('stat-total-sessions').textContent = state.study.entries.length;
+  // streak — counts back from yesterday if today has no entry yet (study + reading)
+  let streak = 0;
+  const today = new Date();
+  const loggedDates = allLoggedDates();
+  const tStr = today.toISOString().slice(0,10);
+  const startOffset = loggedDates.has(tStr) ? 0 : 1;
+  for (let i = startOffset; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    if (loggedDates.has(ds)) streak++;
+    else break;
+  }
+  document.getElementById('stat-streak').textContent = streak;
+  // books
+  let started = 0, complete = 0;
+  for (const key in state.study.bookProgress) {
+    const pct = state.study.bookProgress[key].pct || 0;
+    if (pct > 0) started++;
+    if (pct >= 100) complete++;
+  }
+  document.getElementById('stat-books-started').textContent = started;
+  document.getElementById('stat-books-complete').textContent = complete;
+  // GC
+  const gcTotal = Object.values(state.study.gcRead).filter(Boolean).length;
+  document.getElementById('stat-gc-talks').textContent = gcTotal;
+}
+
+// ── Render: standard works ──
+let openBookKey = null;
+
+const _bookRegistry = {};
+let _bookIdx = 0;
+
+function registerBook(key, corpusLabel, chapters) {
+  const idx = _bookIdx++;
+  _bookRegistry[idx] = { key, corpusLabel, chapters };
+  return idx;
+}
+
+function renderCorpora() {
+  try {
+    _bookIdx = 0;
+    Object.keys(_bookRegistry).forEach(function(k) { delete _bookRegistry[k]; });
+
+    var container = document.getElementById('corpus-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    CORPORA.forEach(function(corpus) {
+      try {
+        var books = corpus.books;
+        var total = books.length;
+        var complete = 0;
+        books.forEach(function(b) {
+          var key = corpus.label + '::' + b.name;
+          var read = (state.study.chapterProgress[key] || []).length;
+          if (b.chapters > 0 && read >= b.chapters) complete++;
+        });
+        var corpusPct = Math.round((complete / total) * 100);
+
+        var sec = document.createElement('div');
+        sec.className = 'corpus-section';
+        sec.innerHTML =
+          '<div class="corpus-title">' + corpus.label +
+            '<span class="corpus-badge">' + complete + '/' + total + ' books complete</span>' +
+          '</div>' +
+          '<div class="corpus-progress-bar">' +
+            '<div class="corpus-progress-fill" style="width:' + corpusPct + '%"></div>' +
+          '</div>' +
+          '<div class="books-list" id="list-' + corpus.id + '"></div>';
+        container.appendChild(sec);
+
+        var list = document.getElementById('list-' + corpus.id);
+        if (!list) return;
+        books.forEach(function(b) {
+          var key = corpus.label + '::' + b.name;
+          list.appendChild(buildBookRow(corpus.label, b, key));
+        });
+      } catch(e2) { /* skip broken corpus */ }
+    });
+  } catch(e) { /* silent fail */ }
+}
+
+function buildBookRow(corpusLabel, book, key) {
+  const readArr = state.study.chapterProgress[key] || [];
+  const readCount = readArr.length;
+  const total = book.chapters;
+  const pct = total > 0 ? Math.round((readCount / total) * 100) : 0;
+  const isComplete = pct >= 100;
+  const isOpen = openBookKey === key;
+  const safeKey = key.replace(/[^a-z0-9]/gi, '_');
+
+  const idx = registerBook(key, corpusLabel, total);
+
+  const row = document.createElement('div');
+  row.className = 'book-row' + (isComplete ? ' complete' : pct > 0 ? ' partial' : '') + (isOpen ? ' open' : '');
+  row.id = 'bookrow-' + safeKey;
+
+  const header = document.createElement('div');
+  header.className = 'book-row-header';
+  header.innerHTML =
+    '<span class="book-row-name">' + book.name + '</span>' +
+    '<span class="book-row-meta">' + readCount + '/' + total + '</span>' +
+    '<div class="book-row-bar-wrap"><div class="book-row-bar-fill" style="width:' + pct + '%"></div></div>' +
+    (isComplete ? '<span class="book-row-complete-tick">✓</span>' : '') +
+    '<span class="book-row-chevron">▾</span>';
+  header.addEventListener('click', function() { toggleBookRow(idx); });
+
+  const panel = document.createElement('div');
+  panel.className = 'book-chapters-panel';
+  panel.id = 'panel-' + safeKey;
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'chapter-panel-toolbar';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'ch-toolbar-btn';
+  allBtn.textContent = 'All';
+  allBtn.addEventListener('click', function(e) { e.stopPropagation(); markAllInline(idx, true); });
+
+  const noneBtn = document.createElement('button');
+  noneBtn.className = 'ch-toolbar-btn';
+  noneBtn.textContent = 'None';
+  noneBtn.addEventListener('click', function(e) { e.stopPropagation(); markAllInline(idx, false); });
+
+  const countSpan = document.createElement('span');
+  countSpan.className = 'ch-panel-count';
+  countSpan.id = 'count-' + safeKey;
+  countSpan.textContent = readCount + '/' + total + ' read';
+
+  toolbar.appendChild(allBtn);
+  toolbar.appendChild(noneBtn);
+  toolbar.appendChild(countSpan);
+
+  const chips = document.createElement('div');
+  chips.className = 'chapter-chips';
+  chips.id = 'chips-' + safeKey;
+  buildChips(chips, key, total);
+
+  panel.appendChild(toolbar);
+  panel.appendChild(chips);
+  row.appendChild(header);
+  row.appendChild(panel);
+  return row;
+}
+
+function buildChips(container, key, total) {
+  const readSet = new Set(state.study.chapterProgress[key] || []);
+  container.innerHTML = '';
+  for (let i = 1; i <= total; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'ch-chip' + (readSet.has(i) ? ' read' : '');
+    btn.textContent = i;
+    const ch = i;
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleChapterInline(key, ch, total, btn);
+    });
+    container.appendChild(btn);
+  }
+}
+
+function toggleBookRow(idx) {
+  const entry = _bookRegistry[idx];
+  if (!entry) return;
+  const { key } = entry;
+  openBookKey = (openBookKey === key) ? null : key;
+  renderCorpora();
+  renderStudyStats();
+}
+
+function toggleChapterInline(key, ch, total, btn) {
+  if (!state.study.chapterProgress[key]) state.study.chapterProgress[key] = [];
+  const arr = state.study.chapterProgress[key];
+  const idx = arr.indexOf(ch);
+  const marking = idx === -1;
+  if (marking) { arr.push(ch); btn.classList.add('read'); }
+  else         { arr.splice(idx, 1); btn.classList.remove('read'); }
+
+  // Auto-log a study session entry for today when marking a chapter read
+  if (marking) {
+    const parts = key.split('::');
+    const corpus = parts[0] || '';
+    const book   = parts[1] || '';
+    const today  = todayStr();
+    const alreadyLogged = state.study.entries.some(function(e) {
+      return e.date === today && e.book === book && e.corpus === corpus;
+    });
+    if (!alreadyLogged) {
+      state.study.entries.push({
+        id:     Date.now().toString(36),
+        corpus: corpus,
+        book:   book,
+        ref:    book + ' ' + ch,
+        date:   today,
+        minutes: 0,
+        note:   ''
+      });
+    }
+  }
+
+  saveState();
+  updateBookRowStats(key, total);
+  renderStudyStats();
+  renderStreak();
+}
+
+function markAllInline(idx, mark) {
+  const entry = _bookRegistry[idx];
+  if (!entry) return;
+  const { key, chapters: total } = entry;
+  state.study.chapterProgress[key] = mark ? Array.from({length: total}, (_, i) => i + 1) : [];
+  saveState();
+  const safeKey = key.replace(/[^a-z0-9]/gi, '_');
+  const chipsEl = document.getElementById('chips-' + safeKey);
+  if (chipsEl) buildChips(chipsEl, key, total);
+  updateBookRowStats(key, total);
+}
+
+function updateBookRowStats(key, total) {
+  const readCount = (state.study.chapterProgress[key] || []).length;
+  const pct = total > 0 ? Math.round((readCount / total) * 100) : 0;
+  const safeKey = key.replace(/[^a-z0-9]/gi, '_');
+
+  const countEl = document.getElementById('count-' + safeKey);
+  if (countEl) countEl.textContent = readCount + '/' + total + ' read';
+
+  const rowEl = document.getElementById('bookrow-' + safeKey);
+  if (rowEl) {
+    const bar = rowEl.querySelector('.book-row-bar-fill');
+    const meta = rowEl.querySelector('.book-row-meta');
+    const tick = rowEl.querySelector('.book-row-complete-tick');
+    if (bar) bar.style.width = pct + '%';
+    if (meta) meta.textContent = readCount + '/' + total;
+    rowEl.className = 'book-row open' + (pct >= 100 ? ' complete' : pct > 0 ? ' partial' : '');
+    if (pct >= 100 && !tick) {
+      const chevron = rowEl.querySelector('.book-row-chevron');
+      const span = document.createElement('span');
+      span.className = 'book-row-complete-tick';
+      span.textContent = '✓';
+      rowEl.querySelector('.book-row-header').insertBefore(span, chevron);
+    } else if (pct < 100 && tick) {
+      tick.remove();
+    }
+  }
+
+  // Sync bookProgress for stats/backup
+  if (!state.study.bookProgress[key]) state.study.bookProgress[key] = { pct: 0, note: '' };
+  state.study.bookProgress[key].pct = pct;
+
+  renderStudyStats();
+  // Re-render corpus progress bar
+  const parts = key.split('::');
+  const corpus = CORPORA.find(c => c.label === parts[0]);
+  if (corpus) {
+    const total2 = corpus.books.length;
+    let complete = 0;
+    corpus.books.forEach(b => {
+      const k = corpus.label + '::' + b.name;
+      const r = (state.study.chapterProgress[k] || []).length;
+      if (b.chapters > 0 && r >= b.chapters) complete++;
+    });
+    const corpusPct = Math.round((complete / total2) * 100);
+    const corpusFill = document.querySelector('#list-' + corpus.id)
+      ?.closest('.corpus-section')
+      ?.querySelector('.corpus-progress-fill');
+    if (corpusFill) corpusFill.style.width = corpusPct + '%';
+    const badge = document.querySelector('#list-' + corpus.id)
+      ?.closest('.corpus-section')
+      ?.querySelector('.corpus-badge');
+    if (badge) badge.textContent = complete + '/' + total2 + ' books complete';
+  }
+}
+
+// ── Render: General Conference ──
+let gcFilterSeason = 'all';
+let gcShowHidden = false;
+
+function renderGC() {
+  const hiddenSet = new Set(state.study.hiddenGC || []);
+
+  const allTalks = [...GC_TALKS, ...state.study.gcCustom];
+  const visibleTalks = gcShowHidden ? allTalks : allTalks.filter(t => !hiddenSet.has(t.id));
+  const seasons = ['all', ...new Set(visibleTalks.map(t => t.season))];
+
+  const filterRow = document.getElementById('gc-filter-row');
+  filterRow.innerHTML = '';
+  seasons.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-chip' + (gcFilterSeason === s ? ' active' : '');
+    btn.textContent = s === 'all' ? 'All' : s;
+    btn.onclick = () => { gcFilterSeason = s; renderGC(); };
+    filterRow.appendChild(btn);
+  });
+
+  const filtered = gcFilterSeason === 'all' ? visibleTalks : visibleTalks.filter(t => t.season === gcFilterSeason);
+  const grid = document.getElementById('gc-grid');
+  grid.innerHTML = '';
+
+  filtered.forEach(talk => {
+    const read = state.study.gcRead[talk.id];
+    const isCustom = talk.id.startsWith('gc_c_');
+    const div = document.createElement('div');
+    div.className = 'gc-item' + (read ? ' read' : '');
+    div.style.position = 'relative';
+
+    const actionBtn = document.createElement('button');
+    actionBtn.className = isCustom ? 'item-del-btn' : 'item-hide-btn';
+    actionBtn.title = isCustom ? 'Remove talk' : 'Hide from list';
+    actionBtn.textContent = isCustom ? '×' : '–';
+    actionBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (isCustom) deleteGCTalk(talk.id);
+      else hideGCTalk(talk.id);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'item-actions';
+    actions.appendChild(actionBtn);
+
+    div.innerHTML =
+      '<div class="gc-season">' + esc(talk.season) + '</div>' +
+      '<div class="gc-name">' + esc(talk.name) + '</div>' +
+      '<div class="gc-speaker">' + esc(talk.speaker) + '</div>';
+    div.insertBefore(actions, div.firstChild);
+    div.addEventListener('click', function() {
+      state.study.gcRead[talk.id] = !state.study.gcRead[talk.id];
+      saveState(); renderGC(); renderStudyStats();
+    });
+    grid.appendChild(div);
+  });
+
+  const hiddenCount = (state.study.hiddenGC || []).length;
+  if (hiddenCount > 0) {
+    const row = document.createElement('div');
+    row.className = 'show-hidden-row';
+    row.style.gridColumn = '1 / -1';
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'show-hidden-btn';
+    toggleBtn.textContent = gcShowHidden
+      ? '▲ Hide hidden talks'
+      : '▼ Show ' + hiddenCount + ' hidden talk' + (hiddenCount > 1 ? 's' : '');
+    toggleBtn.addEventListener('click', function() { gcShowHidden = !gcShowHidden; renderGC(); });
+    row.appendChild(toggleBtn);
+    grid.appendChild(row);
+  }
+}
+
+function deleteGCTalk(id) {
+  state.study.gcCustom = state.study.gcCustom.filter(t => t.id !== id);
+  delete state.study.gcRead[id];
+  saveState(); renderGC(); renderStudyStats();
+}
+
+function hideGCTalk(id) {
+  if (!state.study.hiddenGC) state.study.hiddenGC = [];
+  if (!state.study.hiddenGC.includes(id)) state.study.hiddenGC.push(id);
+  saveState(); renderGC();
+}
+
+// ── Render: Scholars ──
+let scholarsShowHidden = false;
+
+function renderScholars() {
+  const hiddenSet = new Set(state.study.hiddenScholars || []);
+  const allBooks = [...SCHOLAR_BOOKS, ...state.study.scholarCustom];
+  const visibleBooks = scholarsShowHidden ? allBooks : allBooks.filter(b => !hiddenSet.has(b.id));
+
+  const grid = document.getElementById('scholar-grid');
+  grid.innerHTML = '';
+
+  visibleBooks.forEach(book => {
+    const prog = state.study.scholarProgress[book.id] || {};
+    const pct = prog.pct || 0;
+    const isCustom = book.id.startsWith('sb_c_');
+    const div = document.createElement('div');
+    div.className = 'scholar-item';
+
+    div.innerHTML =
+      '<div class="scholar-author">' + esc(book.author) + '</div>' +
+      '<div class="scholar-title">' + esc(book.title) + '</div>' +
+      '<div class="scholar-progress-wrap">' +
+        '<div class="scholar-bar"><div class="scholar-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="scholar-pct">' + pct + '%</div>' +
+      '</div>' +
+      '<div class="item-actions" style="margin-top:10px"></div>';
+
+    const actions = div.querySelector('.item-actions');
+
+    const updateBtn = document.createElement('button');
+    updateBtn.className = 'scholar-pages-btn';
+    updateBtn.textContent = 'Update';
+    updateBtn.addEventListener('click', function(e) { e.stopPropagation(); openScholarModal(book.id); });
+
+    const actionBtn = document.createElement('button');
+    actionBtn.className = isCustom ? 'item-del-btn' : 'item-hide-btn';
+    if (isCustom) actionBtn.style.fontSize = '13px';
+    actionBtn.title = isCustom ? 'Remove book' : 'Hide from list';
+    actionBtn.textContent = isCustom ? '×' : '–';
+    actionBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (isCustom) deleteScholarBook(book.id);
+      else hideScholarBook(book.id);
+    });
+
+    actions.appendChild(updateBtn);
+    actions.appendChild(actionBtn);
+    grid.appendChild(div);
+  });
+
+  const hiddenCount = (state.study.hiddenScholars || []).length;
+  if (hiddenCount > 0) {
+    const row = document.createElement('div');
+    row.className = 'show-hidden-row';
+    row.style.gridColumn = '1 / -1';
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'show-hidden-btn';
+    toggleBtn.textContent = scholarsShowHidden
+      ? '▲ Hide hidden books'
+      : '▼ Show ' + hiddenCount + ' hidden book' + (hiddenCount > 1 ? 's' : '');
+    toggleBtn.addEventListener('click', function() { scholarsShowHidden = !scholarsShowHidden; renderScholars(); });
+    row.appendChild(toggleBtn);
+    grid.appendChild(row);
+  }
+}
+
+function deleteScholarBook(id) {
+  state.study.scholarCustom = state.study.scholarCustom.filter(b => b.id !== id);
+  delete state.study.scholarProgress[id];
+  saveState(); renderScholars();
+}
+
+function hideScholarBook(id) {
+  if (!state.study.hiddenScholars) state.study.hiddenScholars = [];
+  if (!state.study.hiddenScholars.includes(id)) state.study.hiddenScholars.push(id);
+  saveState(); renderScholars();
+}
+
+// ── Render: Journal ──
+function renderJournal() {
+  const entries = [...state.study.entries].sort((a,b) => b.date.localeCompare(a.date));
+  const container = document.getElementById('journal-entries');
+  if (!entries.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📖</div><div class="empty-state-text">No study sessions logged yet.<br>Press + to record your first.</div></div>';
+    return;
+  }
+  container.innerHTML = '';
+  entries.forEach(entry => {
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    div.innerHTML =
+      '<div class="log-entry-header">' +
+        '<div>' +
+          '<span class="log-entry-corpus">' + esc(entry.corpus) + '</span>' +
+          '<div class="log-entry-ref">' + esc(entry.ref || entry.book || entry.corpus) + '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px">' +
+          '<div class="log-entry-date">' + formatDateLong(entry.date) + (entry.minutes ? ' · ' + entry.minutes + ' min' : '') + '</div>' +
+          '<button class="log-entry-delete" title="Delete">×</button>' +
+        '</div>' +
+      '</div>' +
+      (entry.note ? '<div class="log-entry-note">"' + esc(entry.note) + '"</div>' : '');
+
+    div.querySelector('.log-entry-delete').addEventListener('click', function() {
+      deleteEntry(entry.id);
+    });
+    container.appendChild(div);
+  });
+}
+
+function deleteEntry(id) {
+  state.study.entries = state.study.entries.filter(e => e.id !== id);
+  saveState(); renderStudy();
+}
+
+// ── Study modals ──
+function openLogModal() {
+  document.getElementById('form-date').value = todayStr();
+  document.getElementById('form-corpus').value = '';
+  document.getElementById('form-book').value = '';
+  document.getElementById('form-ref').value = '';
+  document.getElementById('form-minutes').value = '';
+  document.getElementById('form-note').value = '';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function saveEntry() {
+  const corpus = document.getElementById('form-corpus').value;
+  const ref = document.getElementById('form-ref').value.trim();
+  if (!corpus) { alert('Please select a corpus/source.'); return; }
+  const entry = {
+    id: Date.now().toString(36),
+    corpus,
+    book: document.getElementById('form-book').value.trim(),
+    ref: ref || document.getElementById('form-book').value.trim(),
+    date: document.getElementById('form-date').value || todayStr(),
+    minutes: parseInt(document.getElementById('form-minutes').value) || 0,
+    note: document.getElementById('form-note').value.trim()
+  };
+  state.study.entries.push(entry);
+
+  // Auto-update book progress if standard works
+  if (['Old Testament','New Testament','Book of Mormon','Doctrine & Covenants','Pearl of Great Price'].includes(corpus)) {
+    const bookName = entry.book;
+    if (bookName) {
+      const key = corpus + '::' + bookName;
+      if (!state.study.bookProgress[key]) state.study.bookProgress[key] = {pct:0,note:''};
+      if (state.study.bookProgress[key].pct === 0) state.study.bookProgress[key].pct = 5; // started
+    }
+  }
+
+  saveState();
+  closeModal();
+  renderStudy();
+}
+
+function updateFormForCorpus() {
+  const corpus = document.getElementById('form-corpus').value;
+  const bookRow = document.getElementById('form-book-row');
+  bookRow.style.display = corpus ? 'block' : 'none';
+  const bookInput = document.getElementById('form-book');
+  if (corpus === 'General Conference') bookInput.placeholder = 'Talk title or speaker';
+  else if (corpus === 'LDS Scholarship') bookInput.placeholder = 'Book / author';
+  else bookInput.placeholder = 'e.g. Genesis, Mosiah…';
+}
+
+function addGCTalk() {
+  const season = prompt('Conference season (e.g. Apr 2025):');
+  if (!season) return;
+  const name = prompt('Talk title:');
+  if (!name) return;
+  const speaker = prompt('Speaker name:');
+  state.study.gcCustom.push({ id: 'gc_c_' + Date.now(), season: season.trim(), name: name.trim(), speaker: speaker || '' });
+  saveState();
+  renderGC();
+}
+
+function addCustomBook() {
+  const author = prompt('Author name:');
+  if (!author) return;
+  const title = prompt('Book title:');
+  if (!title) return;
+  const pages = parseInt(prompt('Approx. page count:')) || 300;
+  state.study.scholarCustom.push({ id: 'sb_c_' + Date.now(), author: author.trim(), title: title.trim(), pages });
+  saveState();
+  renderScholars();
+}
+
+// ── Study tabs ──
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + tabId + "'")) b.classList.add('active');
+  });
+  document.getElementById('panel-' + tabId).classList.add('active');
+  if (tabId === 'gen-conf') renderGC();
+  if (tabId === 'scholars') renderScholars();
+  if (tabId === 'journal') renderJournal();
+}
+
+function renderStudy() {
+  renderStudyStats();
+  renderStreak();
+  renderCorpora();
+  renderGC();
+  renderScholars();
+  renderJournal();
+}
+
+// ═══════════════════════════════════════════════════
+// ═══════════════  READING SECTION  ═════════════════
+// ═══════════════════════════════════════════════════
+var _rtLogTarget = null;
+
+function pagesReadForBook(bookId) {
+  return state.reading.logs
+    .filter(l => l.bookId === bookId)
+    .reduce((sum, l) => sum + (l.pages||0), 0);
+}
+function logsForBook(bookId) {
+  return state.reading.logs.filter(l => l.bookId === bookId).sort((a,b) => b.date.localeCompare(a.date));
+}
+function hasLogOnDate(bookId, dateStr) {
+  return state.reading.logs.some(l => l.bookId === bookId && l.date === dateStr);
+}
+function pagesOnDate(bookId, dateStr) {
+  return state.reading.logs
+    .filter(l => l.bookId === bookId && l.date === dateStr)
+    .reduce((sum, l) => sum + (l.pages||0), 0);
+}
+function totalPagesRead() {
+  return state.reading.logs.reduce((s,l) => s + (l.pages||0), 0);
+}
+function totalDaysRead() {
+  return new Set(state.reading.logs.map(l => l.date)).size;
+}
+
+// ── Reading CRUD ──
+function rtAddBook(title, author, pages) {
+  state.reading.books.push({
+    id: 'b_' + Date.now().toString(36),
+    title: title.trim(),
+    author: author.trim(),
+    pages: pages,
+    addedDate: todayStr()
+  });
+  saveState();
+  rtRenderAll();
+}
+
+function rtDeleteBook(id) {
+  if (!confirm('Remove this book and all its reading logs?')) return;
+  state.reading.books = state.reading.books.filter(b => b.id !== id);
+  state.reading.logs  = state.reading.logs.filter(l => l.bookId !== id);
+  saveState();
+  rtRenderAll();
+}
+
+function rtAddLog(bookId, dateStr, pages) {
+  const existing = state.reading.logs.find(l => l.bookId === bookId && l.date === dateStr);
+  if (existing) {
+    existing.pages = pages;
+  } else {
+    state.reading.logs.push({ id: 'l_'+Date.now().toString(36), bookId: bookId, date: dateStr, pages: pages });
+  }
+  saveState();
+  rtRenderAll();
+}
+
+function rtRemoveLog(bookId, dateStr) {
+  state.reading.logs = state.reading.logs.filter(l => !(l.bookId === bookId && l.date === dateStr));
+  saveState();
+  rtRenderAll();
+}
+
+// ── Reading modals ──
+function rtOpenAddModal() {
+  document.getElementById('inp-title').value = '';
+  document.getElementById('inp-author').value = '';
+  document.getElementById('inp-pages').value = '';
+  document.getElementById('add-modal-overlay').classList.add('open');
+  setTimeout(function(){ document.getElementById('inp-title').focus(); }, 50);
+}
+function rtCloseAddModal() {
+  document.getElementById('add-modal-overlay').classList.remove('open');
+}
+function rtSaveBook() {
+  const title = document.getElementById('inp-title').value.trim();
+  const author = document.getElementById('inp-author').value.trim();
+  const pages = parseInt(document.getElementById('inp-pages').value) || 0;
+  if (!title) { document.getElementById('inp-title').focus(); return; }
+  if (pages < 1) { document.getElementById('inp-pages').focus(); return; }
+  rtAddBook(title, author, pages);
+  rtCloseAddModal();
+}
+
+function rtOpenLogModal(bookId) {
+  _rtLogTarget = bookId;
+  const book = state.reading.books.find(b => b.id === bookId);
+  if (!book) return;
+  document.getElementById('log-modal-title').textContent = book.title;
+  document.getElementById('log-date').value = todayStr();
+  document.getElementById('log-pages').value = '';
+  document.getElementById('log-modal-overlay').classList.add('open');
+  setTimeout(function(){ document.getElementById('log-pages').focus(); }, 50);
+}
+function rtCloseLogModal() {
+  document.getElementById('log-modal-overlay').classList.remove('open');
+  _rtLogTarget = null;
+}
+function rtSaveLog() {
+  if (!_rtLogTarget) return;
+  const pages = parseInt(document.getElementById('log-pages').value) || 0;
+  const dateStr = document.getElementById('log-date').value || todayStr();
+  if (pages < 1) { document.getElementById('log-pages').focus(); return; }
+  rtAddLog(_rtLogTarget, dateStr, pages);
+  rtCloseLogModal();
+}
+
+// ── Reading: open/close cards ──
+var rtOpenCardId = null;
+function rtToggleCard(id) {
+  rtOpenCardId = (rtOpenCardId === id) ? null : id;
+  rtRenderBooks();
+}
+
+// ── Reading: render ──
+var rtCompletedVisible = false;
+
+function rtToggleCompleted() {
+  rtCompletedVisible = !rtCompletedVisible;
+  const el = document.getElementById('completed-books');
+  el.style.display = rtCompletedVisible ? 'flex' : 'none';
+  el.style.flexDirection = rtCompletedVisible ? 'column' : '';
+  el.style.gap = rtCompletedVisible ? '8px' : '';
+  document.getElementById('completed-toggle-btn').textContent = rtCompletedVisible ? '▲ Hide' : '▼ Show';
+}
+
+function rtRenderAll() {
+  rtRenderStats();
+  rtRenderBooks();
+  renderStreak();
+  renderStudyStats(); // streak stat includes reading logs
+}
+
+function rtRenderStats() {
+  let active = 0, done = 0;
+  state.reading.books.forEach(function(b) {
+    const read = pagesReadForBook(b.id);
+    if (read >= b.pages) done++;
+    else if (read > 0) active++;
+  });
+  document.getElementById('rt-stat-active').textContent = active;
+  document.getElementById('rt-stat-done').textContent = done;
+  document.getElementById('rt-stat-pages').textContent = totalPagesRead().toLocaleString();
+  document.getElementById('rt-stat-days').textContent = totalDaysRead();
+}
+
+function rtRenderBooks() {
+  const activeEl    = document.getElementById('active-books');
+  const completedEl = document.getElementById('completed-books');
+  const compSection = document.getElementById('completed-section');
+
+  activeEl.innerHTML = '';
+  completedEl.innerHTML = '';
+
+  const active = [], completed = [];
+  state.reading.books.forEach(function(b) {
+    const read = pagesReadForBook(b.id);
+    if (read >= b.pages) completed.push(b);
+    else active.push(b);
+  });
+
+  if (active.length === 0) {
+    activeEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📚</div><div class="empty-state-text">No books yet.<br>Press + to add your first.</div></div>';
+  } else {
+    active.forEach(function(b) { activeEl.appendChild(rtBuildCard(b)); });
+  }
+
+  if (completed.length > 0) {
+    compSection.style.display = '';
+    completed.forEach(function(b) { completedEl.appendChild(rtBuildCard(b)); });
+    document.getElementById('completed-toggle-btn').textContent = rtCompletedVisible ? '▲ Hide' : '▼ Show (' + completed.length + ')';
+  } else {
+    compSection.style.display = 'none';
+  }
+}
+
+function rtBuildCard(book) {
+  const read    = pagesReadForBook(book.id);
+  const pct     = book.pages > 0 ? Math.min(100, Math.round((read / book.pages) * 100)) : 0;
+  const isDone  = pct >= 100;
+  const hasAny  = read > 0;
+  const isOpen  = rtOpenCardId === book.id;
+  const tStr    = todayStr();
+  const loggedToday = hasLogOnDate(book.id, tStr);
+
+  const card = document.createElement('div');
+  card.className = 'book-card' +
+    (isDone ? ' complete' : (hasAny ? ' in-progress' : '')) +
+    (isOpen ? ' open' : '');
+
+  // ── Header ──
+  const header = document.createElement('div');
+  header.className = 'book-card-header';
+  header.addEventListener('click', function() { rtToggleCard(book.id); });
+
+  const spine = document.createElement('div');
+  spine.className = 'book-spine';
+
+  const info = document.createElement('div');
+  info.className = 'book-info';
+  info.innerHTML =
+    '<div class="book-title">' + esc(book.title) + (isDone ? ' <span style="color:var(--gold);font-size:13px">✓</span>' : '') + '</div>' +
+    '<div class="book-meta">' +
+      (book.author ? esc(book.author) + ' · ' : '') +
+      read.toLocaleString() + ' / ' + book.pages.toLocaleString() + ' pp' +
+    '</div>';
+
+  const progWrap = document.createElement('div');
+  progWrap.className = 'book-progress-wrap';
+  progWrap.innerHTML =
+    '<div class="book-bar-outer"><div class="book-bar-fill" style="width:' + pct + '%"></div></div>' +
+    '<div class="book-pct">' + pct + '%</div>';
+
+  const chevron = document.createElement('span');
+  chevron.className = 'book-chevron';
+  chevron.textContent = '▾';
+
+  header.appendChild(spine);
+  header.appendChild(info);
+  header.appendChild(progWrap);
+  header.appendChild(chevron);
+
+  // ── Detail panel ──
+  const detail = document.createElement('div');
+  detail.className = 'book-detail';
+
+  const topRow = document.createElement('div');
+  topRow.className = 'detail-top';
+
+  const todayBtn = document.createElement('button');
+  todayBtn.className = 'today-btn' + (loggedToday ? ' logged' : '');
+  if (loggedToday) {
+    const pp = pagesOnDate(book.id, tStr);
+    todayBtn.textContent = '✓ Today (' + pp + ' pp)';
+    todayBtn.title = 'Click to remove today\'s log';
+    todayBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (confirm('Remove today\'s reading log for this book?')) {
+        rtRemoveLog(book.id, tStr);
+      }
+    });
+  } else {
+    todayBtn.textContent = '+ Log today';
+    todayBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      rtOpenLogModal(book.id);
+    });
+  }
+
+  const customBtn = document.createElement('button');
+  customBtn.className = 'log-today-btn';
+  customBtn.textContent = 'Log other date';
+  customBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    rtOpenLogModal(book.id);
+  });
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'detail-del-btn';
+  delBtn.title = 'Remove book';
+  delBtn.textContent = '×';
+  delBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    rtDeleteBook(book.id);
+  });
+
+  topRow.appendChild(todayBtn);
+  topRow.appendChild(customBtn);
+  topRow.appendChild(delBtn);
+
+  // Reading log history
+  const logs = logsForBook(book.id);
+  const logSection = document.createElement('div');
+
+  if (logs.length > 0) {
+    const logTitle = document.createElement('div');
+    logTitle.className = 'reading-log-title';
+    logTitle.textContent = 'Reading History';
+
+    const days = document.createElement('div');
+    days.className = 'reading-days';
+
+    logs.forEach(function(l) {
+      const chip = document.createElement('div');
+      chip.className = 'day-chip read';
+      chip.title = 'Click to remove ' + l.date;
+      chip.innerHTML = formatDateShort(l.date) + '<span class="chip-pages">' + l.pages + ' pp</span>';
+      chip.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (confirm('Remove log for ' + l.date + '?')) {
+          rtRemoveLog(book.id, l.date);
+        }
+      });
+      days.appendChild(chip);
+    });
+
+    logSection.appendChild(logTitle);
+    logSection.appendChild(days);
+  }
+
+  detail.appendChild(topRow);
+  detail.appendChild(logSection);
+
+  card.appendChild(header);
+  card.appendChild(detail);
+  return card;
+}
+
+// ═══════════════════════════════════════════════════
+// EVENT WIRING
+// ═══════════════════════════════════════════════════
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+document.getElementById('scholar-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeScholarModal();
+});
+document.getElementById('add-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) rtCloseAddModal();
+});
+document.getElementById('log-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) rtCloseLogModal();
+});
+document.getElementById('settings-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeSettingsModal();
+});
+
+document.getElementById('inp-pages').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') rtSaveBook();
+});
+document.getElementById('log-pages').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') rtSaveLog();
+});
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+(function init() {
+  const savedUrl = store.get('unified_sheets_url');
+  if (savedUrl) SHEETS_URL = savedUrl;
+
+  const lastSection = store.get('last_section');
+  if (lastSection === 'reading') switchSection('reading');
+
+  updateFormForCorpus();
+  updateLastBackupLabel();
+  renderStudy();
+  rtRenderAll();
+  setSyncStatus('idle');
+
+  // On load: pull from sheet and merge (never auto-pushes an empty
+  // device over your sheet — auto-push only enables after this pull).
+  if (SHEETS_URL) {
+    setSyncStatus('syncing');
+    fetchFromSheets(function(remote, ok) {
+      if (ok && remote) {
+        const changed = mergeFromSheets(remote);
+        if (changed) { renderStudy(); rtRenderAll(); }
+        setSyncStatus('ok');
+        setTimeout(function(){ setSyncStatus('idle'); }, 3000);
+      } else {
+        setSyncStatus('idle');
+      }
+      _readyToSync = true;
+    });
+  } else {
+    _readyToSync = true;
+  }
+})();
+</script>
+</body>
+</html>
