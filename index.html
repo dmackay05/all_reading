@@ -2,8 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Lectio Divina — Study &amp; Reading Tracker</title>
+
+<!-- PWA: manifest + icons -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<!-- PWA: theme colors -->
+<meta name="theme-color" content="#1a1610">
+<meta name="background-color" content="#1a1610">
+
+<!-- PWA: iOS standalone support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lectio Divina">
 <style>
   /* System font aliases — no external requests, works fully offline */
   @font-face {
@@ -3098,6 +3112,17 @@ document.getElementById('log-pages').addEventListener('keydown', function(e) {
     _readyToSync = true;
   }
 })();
+</script>
+
+<script>
+// PWA: register service worker for offline support / installability.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').catch(function(err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
