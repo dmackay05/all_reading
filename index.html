@@ -296,6 +296,17 @@
   /* ── Corpus / Book Grid (Study) ── */
   .corpus-section { margin-bottom: 44px; }
 
+  .corpus-header-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    padding: 6px 0;
+    margin: -6px 0 0;
+  }
+
   .corpus-title {
     font-family: 'Cormorant Garamond', serif;
     font-size: 20px;
@@ -305,6 +316,8 @@
     display: flex;
     align-items: baseline;
     gap: 12px;
+    flex: 1;
+    min-width: 0;
   }
   .corpus-title .corpus-badge {
     font-family: 'Source Sans 3', sans-serif;
@@ -313,6 +326,15 @@
     color: var(--ink-soft);
     font-weight: 400;
   }
+
+  .corpus-chevron {
+    font-size: 12px;
+    color: var(--ink-soft);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    margin-bottom: 6px;
+  }
+  .corpus-section.open .corpus-chevron { transform: rotate(180deg); }
 
   .corpus-progress-bar {
     height: 3px;
@@ -327,6 +349,9 @@
     background: linear-gradient(90deg, var(--gold-dim), var(--gold));
     transition: width 0.5s ease;
   }
+
+  .corpus-body { display: none; }
+  .corpus-section.open .corpus-body { display: block; }
 
   /* ── Book List (study accordion) ── */
   .books-list {
@@ -2196,6 +2221,7 @@ function renderStudyStats() {
 
 // ── Render: standard works ──
 let openBookKey = null;
+let openCorpora = new Set(CORPORA.map(c => c.id)); // all expanded by default
 
 const _bookRegistry = {};
 let _bookIdx = 0;
@@ -2204,6 +2230,13 @@ function registerBook(key, corpusLabel, chapters) {
   const idx = _bookIdx++;
   _bookRegistry[idx] = { key, corpusLabel, chapters };
   return idx;
+}
+
+function toggleCorpus(corpusId) {
+  if (openCorpora.has(corpusId)) openCorpora.delete(corpusId);
+  else openCorpora.add(corpusId);
+  renderCorpora();
+  renderStudyStats();
 }
 
 function renderCorpora() {
@@ -2226,20 +2259,30 @@ function renderCorpora() {
           if (b.chapters > 0 && read >= b.chapters) complete++;
         });
         var corpusPct = Math.round((complete / total) * 100);
+        var isOpen = openCorpora.has(corpus.id);
 
         var sec = document.createElement('div');
-        sec.className = 'corpus-section';
+        sec.className = 'corpus-section' + (isOpen ? ' open' : '');
         sec.innerHTML =
-          '<div class="corpus-title">' + corpus.label +
-            '<span class="corpus-badge">' + complete + '/' + total + ' books complete</span>' +
+          '<div class="corpus-header-row">' +
+            '<div class="corpus-title">' + corpus.label +
+              '<span class="corpus-badge">' + complete + '/' + total + ' books complete</span>' +
+            '</div>' +
+            '<span class="corpus-chevron">▾</span>' +
           '</div>' +
-          '<div class="corpus-progress-bar">' +
-            '<div class="corpus-progress-fill" style="width:' + corpusPct + '%"></div>' +
-          '</div>' +
-          '<div class="books-list" id="list-' + corpus.id + '"></div>';
+          '<div class="corpus-body">' +
+            '<div class="corpus-progress-bar">' +
+              '<div class="corpus-progress-fill" style="width:' + corpusPct + '%"></div>' +
+            '</div>' +
+            '<div class="books-list" id="list-' + corpus.id + '"></div>' +
+          '</div>';
         container.appendChild(sec);
 
-        var list = document.getElementById('list-' + corpus.id);
+        sec.querySelector('.corpus-header-row').addEventListener('click', function() {
+          toggleCorpus(corpus.id);
+        });
+
+        var list = sec.querySelector('#list-' + corpus.id);
         if (!list) return;
         books.forEach(function(b) {
           var key = corpus.label + '::' + b.name;
