@@ -1855,7 +1855,7 @@ function fabClick() {
 
 // ═══════════════════════════════════════════════════
 // GOOGLE SHEETS SYNC (shared — one sheet, one script)
-//   save: POST (no-cors)  — handles large payloads
+//   save: hidden-iframe form POST — immune to CORS
 //   load: JSONP GET       — readable from any origin
 // ═══════════════════════════════════════════════════
 var _syncTimer = null;
@@ -1869,17 +1869,53 @@ function scheduleSync() {
 function pushToSheets() {
   if (!SHEETS_URL) return Promise.resolve();
   setSyncStatus('syncing');
-  return fetch(SHEETS_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'data=' + encodeURIComponent(JSON.stringify(state))
-  }).then(() => {
-    setSyncStatus('ok');
-    store.set('unified_last_backup', new Date().toISOString());
-    updateLastBackupLabel();
-  }).catch(() => {
-    setSyncStatus('err');
+
+  return new Promise(function (resolve) {
+    var frameName = '_sync_frame_' + Date.now();
+
+    var iframe = document.createElement('iframe');
+    iframe.name = frameName;
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = SHEETS_URL;
+    form.target = frameName;
+    form.style.display = 'none';
+
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'data';
+    input.value = JSON.stringify(state);
+    form.appendChild(input);
+
+    document.body.appendChild(form);
+
+    var done = false;
+    function finish(ok) {
+      if (done) return;
+      done = true;
+      setTimeout(function () {
+        if (form.parentNode) form.parentNode.removeChild(form);
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, 1000);
+
+      if (ok) {
+        setSyncStatus('ok');
+        store.set('unified_last_backup', new Date().toISOString());
+        updateLastBackupLabel();
+      } else {
+        setSyncStatus('err');
+      }
+      resolve();
+    }
+
+    iframe.onload  = function () { finish(true); };
+    iframe.onerror = function () { finish(false); };
+    setTimeout(function () { finish(true); }, 12000);
+
+    form.submit();
   });
 }
 

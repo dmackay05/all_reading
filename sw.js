@@ -3,7 +3,7 @@
 // Never intercepts cross-origin requests (Apps Script sync uses an
 // iframe POST + JSONP GET, both of which must hit the network directly).
 
-const CACHE_NAME = 'lectio-divina-v1';
+const CACHE_NAME = 'lectio-divina-v2';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
@@ -44,8 +44,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) {
-        // Cache-first, but refresh in the background so updates land
-        // on next launch without blocking this one.
         fetch(req).then((fresh) => {
           if (fresh && fresh.ok) {
             caches.open(CACHE_NAME).then((cache) => cache.put(req, fresh.clone()));
