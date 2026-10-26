@@ -3,7 +3,7 @@
 // Never intercepts cross-origin requests (Apps Script sync uses an
 // iframe POST + JSONP GET, both of which must hit the network directly).
 
-const CACHE_NAME = 'lectio-divina-v3';
+const CACHE_NAME = 'lectio-divina-v4';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
